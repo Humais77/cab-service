@@ -736,7 +736,7 @@ export default function Home() {
           </div>
         </div>
         <div className="container footer-bottom">
-          <p>© {new Date().getFullYear()} Cab Service. All rights reserved.</p>
+          <p>© 2026 Cab Service. All rights reserved.</p>
           <div>
             <a href="#contact">Privacy Policy</a>
             <a href="#contact">Terms &amp; Conditions</a>
