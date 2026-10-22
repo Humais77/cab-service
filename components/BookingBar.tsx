@@ -18,12 +18,61 @@ export default function BookingBar() {
   const [tripType, setTripType] = useState<"One way" | "Return">("One way");
   const [notice, setNotice] = useState("");
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setNotice(
-      "Your request is ready. This demo does not send or save bookings yet."
+  const [isSubmitting, setIsSubmitting] = useState(false);
+const [specialInstructions, setSpecialInstructions] = useState("");
+async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  if (isSubmitting) return;
+
+  setIsSubmitting(true);
+  setNotice("");
+
+  const form = event.currentTarget;
+  const data = new FormData(form);
+
+  const payload = {
+    customerName: String(data.get("name") ?? "").trim(),
+    customerEmail: String(data.get("email") ?? "").trim(),
+    customerPhone: String(data.get("phone") ?? "").trim(),
+    pickup: String(data.get("pickup") ?? "").trim(),
+    destination: String(data.get("destination") ?? "").trim(),
+    tripType,
+    journeyDate: String(data.get("date") ?? ""),
+    journeyTime: String(data.get("time") ?? ""),
+    returnDate:
+      tripType === "Return" ? String(data.get("returnDate") ?? "") : "",
+    returnTime:
+      tripType === "Return" ? String(data.get("returnTime") ?? "") : "",
+    vehicleName: String(data.get("vehicle") ?? ""),
+    passengerCount: Number(data.get("passengers") ?? 1),
+    serviceType: String(data.get("service") ?? "General Transfer"),
+    specialInstructions,
+  };
+
+  try {
+    const response = await fetch("/api/bookings", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      setNotice(result.error || "Unable to submit your booking.");
+      return;
+    }
+
+    window.location.assign(
+      `/thank-you?ref=${encodeURIComponent(result.reference)}`,
     );
+  } catch {
+    setNotice("A connection error occurred. Please try again.");
+  } finally {
+    setIsSubmitting(false);
   }
+}
 
   const fieldBase =
     "block min-w-0 border-b border-white/70 pt-1 pb-2.5 pr-[17px] pl-[17px] max-[900px]:border-b-0 max-[900px]:border-b max-[900px]:border-white/30 max-[900px]:px-3 max-[900px]:pt-2 max-[900px]:pb-3 max-[520px]:px-[7px] max-[520px]:pt-3 max-[520px]:pb-3.5";
@@ -153,12 +202,9 @@ export default function BookingBar() {
           </select>
         </label>
 
-        <button
-          className="col-span-full self-end justify-self-stretch mt-2 flex min-h-[52px] items-center justify-center gap-2.5 rounded-[30px] border-0 bg-bl-blue px-4 text-lg font-extrabold text-white hover:bg-[#0789dc] max-[900px]:min-h-[58px] max-[900px]:mx-1.5 max-[900px]:my-0 max-[900px]:mt-2 max-[900px]:text-[19px] max-[520px]:mt-4 max-[520px]:mx-0 max-[520px]:min-h-[62px] max-[520px]:text-[20px]"
-          type="submit"
-        >
-          View options <ArrowRight size={18} />
-        </button>
+       <button type="submit" disabled={isSubmitting}>
+  {isSubmitting ? "Submitting..." : "Book Now"}
+</button>
 
         {notice && (
           <p
@@ -168,6 +214,24 @@ export default function BookingBar() {
             {notice}
           </p>
         )}
+        <div className="md:col-span-2">
+  <label
+    htmlFor="specialInstructions"
+    className="mb-2 block text-sm font-medium"
+  >
+    Special instructions (optional)
+  </label>
+
+  <textarea
+    id="specialInstructions"
+    value={specialInstructions}
+    onChange={(event) => setSpecialInstructions(event.target.value)}
+    maxLength={2000}
+    rows={3}
+    placeholder="Any additional requirements for your journey?"
+    className="w-full rounded-xl border border-slate-300 px-4 py-3 outline-none focus:border-blue-600"
+  />
+</div>
       </form>
     </section>
   );
