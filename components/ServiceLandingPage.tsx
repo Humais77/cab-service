@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Check, ChevronRight } from "lucide-react";
 import TransparentHeader from "@/components/TransparentHeader";
 import StickyBookingCard from "@/components/StickyBookingCard";
-import SiteFooter from "@/components/SiteFooter";
+import Footer from "./home/Footer";
 
 export type ServiceLandingData = {
   eyebrow: string;
@@ -120,7 +120,7 @@ export default function ServiceLandingPage({ data }: { data: ServiceLandingData 
         </div>
       </div>
 
-      <SiteFooter />
+      <Footer />
     </main>
   );
 }

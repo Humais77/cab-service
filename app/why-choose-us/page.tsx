@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Clock3, HeartHandshake, ShieldCheck, CarFront, Check } from "lucide-react";
 import TransparentHeader from "@/components/TransparentHeader";
 import StickyBookingCard from "@/components/StickyBookingCard";
-import SiteFooter from "@/components/SiteFooter";
+import Footer from "@/components/home/Footer";
 
 const reasons = [
   { icon: ShieldCheck, title: "A comfort-first approach", text: "We design the experience around a smooth, considered journey from pickup to arrival." },
@@ -117,7 +117,7 @@ export default function WhyChooseUsPage() {
         </aside>
       </div>
 
-      <SiteFooter />
+      <Footer />
     </main>
   );
 }

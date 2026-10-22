@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, Mail, MapPin, Phone } from "lucide-react";
 import TransparentHeader from "@/components/TransparentHeader";
 import ContactForm from "@/components/ContactForm";
-import SiteFooter from "@/components/SiteFooter";
+import Footer from "@/components/home/Footer";
 
 export default function ContactPage() {
   return (
@@ -78,7 +78,7 @@ export default function ContactPage() {
         </div>
       </section>
 
-      <SiteFooter />
+      <Footer />
     </main>
   );
 }

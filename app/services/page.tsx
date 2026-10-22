@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ArrowUpRight } from "lucide-react";
 import TransparentHeader from "@/components/TransparentHeader";
 import StickyBookingCard from "@/components/StickyBookingCard";
-import SiteFooter from "@/components/SiteFooter";
+import Footer from "@/components/home/Footer";
 
 const services = [
   {
@@ -129,7 +129,7 @@ export default function ServicesPage() {
         </Link>
       </section>
 
-      <SiteFooter />
+      <Footer />
     </main>
   );
 }
