@@ -323,3 +323,89 @@
 @media (prefers-reduced-motion: reduce) {
   .site-page *, .site-page *::before, .site-page *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
 }
+
+@import "tailwindcss";
+
+@theme {
+  --color-navy: #111a2e;
+  --color-navy-deep: #0a1020;
+  --color-navy-soft: #1b2942;
+  --color-accent: #d8b477;
+  --color-accent-light: #f0d8a9;
+  --color-ink: #202736;
+  --color-muted: #737b89;
+  --color-paper: #ffffff;
+  --color-soft: #f5f6f8;
+  --color-line: #e7e9ed;
+  --color-bl-blue: #159cf0;
+
+  --color-site-cream: #faf7f1;
+  --color-site-ink: #17191d;
+  --color-site-muted: #777571;
+  --color-site-blue: #0878f9;
+  --color-site-line: #e7e1d8;
+
+  --font-serif: Georgia, "Times New Roman", serif;
+}
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 100px;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply bg-white text-ink;
+    font-size: 14px;
+    line-height: 1.7;
+    margin: 0;
+  }
+
+  img {
+    @apply block max-w-full;
+  }
+
+  ::selection {
+    @apply bg-accent-light text-navy;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      scroll-behavior: auto !important;
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer utilities {
+  .container-cab {
+    width: min(1200px, calc(100% - 48px));
+    margin-inline: auto;
+  }
+  @media (min-width: 1500px) {
+    .container-cab { width: min(1280px, calc(100% - 48px)); }
+  }
+  @media (max-width: 780px) {
+    .container-cab { width: min(100% - 36px, 1200px); }
+  }
+  @media (max-width: 480px) {
+    .container-cab { width: calc(100% - 32px); }
+  }
+
+  .hero-reveal { animation: hero-reveal 1.2s ease both; }
+  .content-reveal { animation: content-reveal 0.8s ease both; }
+
+  @keyframes hero-reveal {
+    from { transform: scale(1.06); }
+    to { transform: scale(1.015); }
+  }
+  @keyframes content-reveal {
+    from { opacity: 0; transform: translateY(15px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+}
