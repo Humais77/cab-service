@@ -1,20 +1,40 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import dynamic from "next/dynamic";
+import { FormEvent, useCallback, useState } from "react";
 import {
   ArrowRight,
   CalendarDays,
   CarFront,
   ChevronDown,
   Clock3,
-  MapPin,
-  Users,
-  UserRound,
   Mail,
   Phone,
   SlidersHorizontal,
+  UserRound,
+  Users,
   X,
 } from "lucide-react";
+import type { RouteSelection } from "@/components/RoutePlanner";
+
+const RoutePlanner = dynamic(
+  () => import("@/components/RoutePlanner"),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-40 items-center justify-center rounded-xl border border-gray-200 text-sm text-slate-500">
+        Loading map…
+      </div>
+    ),
+  }
+);
+
+const EMPTY_ROUTE: RouteSelection = {
+  pickup: null,
+  destination: null,
+  distanceMeters: null,
+  durationSeconds: null,
+};
 
 export default function BookingBar() {
   const [tripType, setTripType] = useState<"One way" | "Return">("One way");
@@ -22,36 +42,107 @@ export default function BookingBar() {
   const [showOptions, setShowOptions] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [specialInstructions, setSpecialInstructions] = useState("");
+  const [routeSelection, setRouteSelection] =
+    useState<RouteSelection>(EMPTY_ROUTE);
+
+  const handleRouteChange = useCallback((selection: RouteSelection) => {
+    setRouteSelection(selection);
+    setNotice("");
+  }, []);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-
     if (isSubmitting) return;
 
-    setIsSubmitting(true);
     setNotice("");
-
     const form = event.currentTarget;
     const data = new FormData(form);
 
+    if (!routeSelection.pickup || !routeSelection.destination) {
+      setNotice("Please select both pickup and destination from the location suggestions.");
+      return;
+    }
+
+    if (
+      routeSelection.distanceMeters === null ||
+      routeSelection.durationSeconds === null
+    ) {
+      setNotice("Your route is still being calculated. Please wait a moment and try again.");
+      return;
+    }
+
+    const customerName = String(data.get("name") ?? "").trim();
+    const customerEmail = String(data.get("email") ?? "").trim();
+    const customerPhone = String(data.get("phone") ?? "").trim();
+    const vehicleName = String(data.get("vehicle") ?? "").trim();
+    const passengerCount = Number(data.get("passengers") ?? 1);
+    const serviceType = String(data.get("service") ?? "General Transfer").trim();
+
+    if (!customerName || !customerPhone || !vehicleName) {
+      setShowOptions(true);
+      setNotice("Please complete your name, phone number, and vehicle selection before booking.");
+      return;
+    }
+
+    if (
+      customerName.length < 2 ||
+      customerPhone.length < 7 ||
+      !Number.isInteger(passengerCount) ||
+      passengerCount < 1 ||
+      passengerCount > 13
+    ) {
+      setShowOptions(true);
+      setNotice("Please check your contact details and passenger count.");
+      return;
+    }
+
+    if (customerEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(customerEmail)) {
+      setShowOptions(true);
+      setNotice("Please enter a valid email address.");
+      return;
+    }
+
+    const journeyDate = String(data.get("date") ?? "");
+    const journeyTime = String(data.get("time") ?? "");
+    const returnDate = tripType === "Return" ? String(data.get("returnDate") ?? "") : "";
+    const returnTime = tripType === "Return" ? String(data.get("returnTime") ?? "") : "";
+
+    if (!journeyDate || !journeyTime) {
+      setNotice("Please select your journey date and pickup time.");
+      return;
+    }
+
+    if (tripType === "Return" && (!returnDate || !returnTime)) {
+      setShowOptions(true);
+      setNotice("Please select your return date and return time.");
+      return;
+    }
+
     const payload = {
-      customerName: String(data.get("name") ?? "").trim(),
-      customerEmail: String(data.get("email") ?? "").trim(),
-      customerPhone: String(data.get("phone") ?? "").trim(),
-      pickup: String(data.get("pickup") ?? "").trim(),
-      destination: String(data.get("destination") ?? "").trim(),
+      customerName,
+      customerEmail,
+      customerPhone,
+      pickup: routeSelection.pickup.address,
+      destination: routeSelection.destination.address,
+      pickupLat: routeSelection.pickup.latitude,
+      pickupLng: routeSelection.pickup.longitude,
+      destinationLat: routeSelection.destination.latitude,
+      destinationLng: routeSelection.destination.longitude,
+      // Server recalculates these; do not use them as trusted values.
+      distanceMeters: routeSelection.distanceMeters,
+      durationSeconds: routeSelection.durationSeconds,
       tripType,
-      journeyDate: String(data.get("date") ?? ""),
-      journeyTime: String(data.get("time") ?? ""),
-      returnDate:
-        tripType === "Return" ? String(data.get("returnDate") ?? "") : "",
-      returnTime:
-        tripType === "Return" ? String(data.get("returnTime") ?? "") : "",
-      vehicleName: String(data.get("vehicle") ?? ""),
-      passengerCount: Number(data.get("passengers") ?? 1),
-      serviceType: String(data.get("service") ?? "General Transfer"),
-      specialInstructions,
+      journeyDate,
+      journeyTime,
+      returnDate,
+      returnTime,
+      vehicleName,
+      passengerCount,
+      serviceType,
+      specialInstructions: specialInstructions.trim(),
     };
+
+    setIsSubmitting(true);
 
     try {
       const response = await fetch("/api/bookings", {
@@ -59,218 +150,233 @@ export default function BookingBar() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-
       const result = await response.json();
 
       if (!response.ok) {
-        setNotice(result.error || "Unable to submit your booking.");
+        setNotice(result.error || "Unable to submit your booking. Please try again.");
         return;
       }
 
-      window.location.assign(
-        `/thank-you?ref=${encodeURIComponent(result.reference)}`,
-      );
-    } catch {
+      if (!result.reference) {
+        setNotice("Your booking was submitted, but no reference was returned. Please contact us before submitting again.");
+        return;
+      }
+
+      window.location.assign(`/thank-you?ref=${encodeURIComponent(result.reference)}`);
+    } catch (error) {
+      console.error("Booking submission failed:", error);
       setNotice("A connection error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  // Field styling optimized for the dark UI
-  const fieldBase =
-    "block min-w-0 flex flex-col pt-1 pb-2.5 max-[900px]:pb-1 max-[520px]:pb-2";
-
-  const labelBase =
-    "flex items-center gap-2 mb-1 text-[13px] font-bold text-white max-[520px]:text-[14px] [&_svg]:shrink-0";
-
-  const inputBase =
-    "w-full min-w-0 min-h-[44px] border-0 border-b border-white/40 bg-transparent px-0 py-[5px] text-[16px] text-white outline-none placeholder:text-white/50 focus:border-white [color-scheme:dark] max-[520px]:text-[17px]";
-    
-  const selectBase = `${inputBase} [&>option]:bg-white [&>option]:text-ink cursor-pointer`;
-
   return (
-    <section
-      className="relative z-[5] mx-auto -mt-[110px] w-[min(1180px,calc(100%-48px))] scroll-mt-5 max-[900px]:-mt-[60px] max-[900px]:w-[calc(100%-28px)] max-[520px]:-mt-[40px] max-[520px]:w-[calc(100%-22px)]"
-      id="booking"
-      aria-label="Book a ride"
-    >
-      <form
-        className="grid grid-cols-4 gap-0 rounded-[12px] border border-white/20 bg-[rgba(34,38,44,0.85)] p-5 text-white shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-[20px] max-[900px]:grid-cols-2 max-[900px]:gap-y-2 max-[900px]:px-4 max-[900px]:py-4 max-[520px]:grid-cols-1 max-[520px]:gap-0 max-[520px]:rounded-[16px] max-[520px]:px-5 max-[520px]:py-5"
-        onSubmit={handleSubmit}
-      >
-        {/* Trip type tabs */}
-        <div
-          className="col-span-full mb-[20px] flex justify-self-start gap-1 rounded-[30px] border border-white/30 bg-white/5 p-1 max-[900px]:mb-4 max-[900px]:ml-0 max-[520px]:w-full"
-          role="group"
-          aria-label="Trip type"
-        >
-          {(["One way", "Return"] as const).map((type) => (
-            <button
-              key={type}
-              type="button"
-              className={[
-                "flex-1 min-h-10 min-w-[115px] rounded-[25px] border-0 px-[18px] text-sm font-bold transition-all max-[520px]:text-[15px]",
-                tripType === type
-                  ? "bg-[#159cf0] text-white shadow-md"
-                  : "bg-transparent text-white/70 hover:text-white",
-              ].join(" ")}
-              aria-pressed={tripType === type}
-              onClick={() => {
-                setTripType(type);
-                setNotice("");
-              }}
-            >
-              {type === "Return" ? "By the hour" : type}
-            </button>
-          ))}
+    <section id="booking" className="w-full scroll-mt-24 px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl">
+        <div className="flex flex-col gap-4 border-b border-gray-100 px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-7">
+          <div>
+            <h2 className="text-xl font-bold text-slate-900 sm:text-2xl">Book Your Ride</h2>
+            <p className="mt-1 text-sm text-slate-500">Choose your locations and journey details.</p>
+          </div>
+
+          <div className="inline-flex w-fit rounded-xl bg-gray-100 p-1">
+            {(["One way", "Return"] as const).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => {
+                  setTripType(type);
+                  setNotice("");
+                }}
+                className={`rounded-lg px-5 py-2.5 text-sm font-semibold transition ${
+                  tripType === type ? "bg-slate-900 text-white shadow-sm" : "text-slate-600 hover:text-slate-900"
+                }`}
+                aria-pressed={tripType === type}
+              >
+                {type === "Return" ? "By the hour" : "One way"}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* --- ALWAYS VISIBLE: Pickup, Drop-off, Date, Time --- */}
-        <div className="col-span-full grid grid-cols-4 gap-5 max-[900px]:grid-cols-2 max-[900px]:gap-x-4 max-[520px]:grid-cols-1 max-[520px]:gap-2">
-          <label className={fieldBase}>
-            <span className={labelBase}>Pickup location</span>
-            <input name="pickup" placeholder="Address, airport, hotel, ..." autoComplete="street-address" required className={inputBase} />
-          </label>
+        <form onSubmit={handleSubmit} className="space-y-6 p-5 sm:p-7">
+          <RoutePlanner onChange={handleRouteChange} />
 
-          <label className={fieldBase}>
-            <span className={labelBase}>Drop-off location</span>
-            <input name="destination" placeholder="Address, airport, hotel, ..." required className={inputBase} />
-          </label>
-
-          <label className={fieldBase}>
-            <span className={labelBase}>Date</span>
-            <input name="date" type="date" min={new Date().toISOString().slice(0, 10)} required className={inputBase} />
-          </label>
-
-          <label className={fieldBase}>
-            <span className={labelBase}>Pickup time</span>
-            <input name="time" type="time" required className={inputBase} />
-          </label>
-        </div>
-
-        {/* --- HIDDEN OPTIONS (shown only after clicking View options) --- */}
-        {showOptions && (
-          <div
-            id="booking-extra-options"
-            className="col-span-full mt-4 grid grid-cols-4 gap-5 border-t border-white/20 pt-4 max-[900px]:grid-cols-2 max-[900px]:gap-x-4 max-[520px]:grid-cols-1 max-[520px]:gap-2"
-          >
-            {tripType === "Return" && (
-              <>
-                <label className={fieldBase}>
-                  <span className={labelBase}>Return date</span>
-                  <input name="returnDate" type="date" min={new Date().toISOString().slice(0, 10)} required className={inputBase} />
-                </label>
-                <label className={fieldBase}>
-                  <span className={labelBase}>Return time</span>
-                  <input name="returnTime" type="time" required className={inputBase} />
-                </label>
-              </>
-            )}
-
-            <label className={fieldBase}>
-              <span className={labelBase}>Vehicle</span>
-              <select name="vehicle" defaultValue="" required className={selectBase}>
-                <option value="" disabled>Select a vehicle</option>
-                <option>Standard Sedan</option>
-                <option>Premium Sedan</option>
-                <option>Maxi Cab</option>
-                <option>Accessible Vehicle</option>
-              </select>
-            </label>
-
-            <label className={fieldBase}>
-              <span className={labelBase}>Passengers</span>
-              <select name="passengers" defaultValue="1" className={selectBase}>
-                {Array.from({ length: 13 }, (_, i) => (
-                  <option key={i + 1} value={i + 1}>
-                    {i + 1} {i === 0 ? "passenger" : "passengers"}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className={fieldBase}>
-              <span className={labelBase}>Full name</span>
-              <input name="name" autoComplete="name" placeholder="Your name" required className={inputBase} />
-            </label>
-
-            <label className={fieldBase}>
-              <span className={labelBase}>Email address</span>
-              <input name="email" type="email" autoComplete="email" placeholder="you@example.com" required className={inputBase} />
-            </label>
-
-            <label className={fieldBase}>
-              <span className={labelBase}>Phone number</span>
-              <input name="phone" type="tel" autoComplete="tel" placeholder="Your phone number" required className={inputBase} />
-            </label>
-
-            <label className={fieldBase}>
-              <span className={labelBase}>Service type</span>
-              <select name="service" defaultValue="General Transfer" className={selectBase}>
-                <option>General Transfer</option>
-                <option>Airport Transfer</option>
-                <option>Corporate Transfer</option>
-                <option>Family Travel</option>
-              </select>
-            </label>
-
-            <div className="col-span-full pt-1">
-              <label htmlFor="specialInstructions" className="mb-2 block text-[13px] font-bold text-white">
-                Special instructions (optional)
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <div>
+              <label htmlFor="journey-date" className="mb-2 block text-sm font-semibold text-slate-700">
+                <CalendarDays className="mr-2 inline-block h-4 w-4" />
+                Journey date
               </label>
-              <textarea
-                id="specialInstructions"
-                value={specialInstructions}
-                onChange={(event) => setSpecialInstructions(event.target.value)}
-                maxLength={2000}
-                rows={2}
-                placeholder="Any additional requirements?"
-                className="w-full rounded-xl border border-white/30 bg-white/5 px-4 py-3 text-white placeholder:text-white/40 outline-none focus:border-[#159cf0]"
+              <input
+                id="journey-date"
+                name="date"
+                type="date"
+                required
+                min={new Date().toLocaleDateString("en-CA")}
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-slate-800 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
               />
             </div>
+
+            <div>
+              <label htmlFor="journey-time" className="mb-2 block text-sm font-semibold text-slate-700">
+                <Clock3 className="mr-2 inline-block h-4 w-4" />
+                Pickup time
+              </label>
+              <input
+                id="journey-time"
+                name="time"
+                type="time"
+                required
+                className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm text-slate-800 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
+              />
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="button"
+                onClick={() => setShowOptions((current) => !current)}
+                aria-expanded={showOptions}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-gray-200 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:border-green-600 hover:text-green-700"
+              >
+                {showOptions ? <X className="h-4 w-4" /> : <SlidersHorizontal className="h-4 w-4" />}
+                {showOptions ? "Hide options" : "View options"}
+                {!showOptions && <ChevronDown className="h-4 w-4" />}
+              </button>
+            </div>
+
+            <div className="flex items-end">
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-3 font-semibold text-white transition hover:bg-green-700 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmitting ? "Submitting..." : "Book Now"}
+                {!isSubmitting && <ArrowRight className="h-4 w-4" />}
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* --- ACTIONS: View Options & Submit --- */}
-        <div className="col-span-full mt-5 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between max-[520px]:mt-5">
-          
-          <button
-            type="button"
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[8px] border border-white/40 bg-transparent px-6 text-[15px] font-bold text-white transition-colors hover:bg-white/10 max-[520px]:order-2 max-[520px]:w-full"
-            aria-expanded={showOptions}
-            aria-controls="booking-extra-options"
-            onClick={() => setShowOptions((v) => !v)}
-          >
-            {showOptions ? (
-              <>
-                <X size={18} /> Hide options
-              </>
-            ) : (
-              <>
-                <SlidersHorizontal size={18} /> View options
-              </>
-            )}
-          </button>
+          {showOptions && (
+            <div className="space-y-5 rounded-2xl border border-gray-200 bg-gray-50 p-4 sm:p-6">
+              <div>
+                <h3 className="font-bold text-slate-900">Booking and passenger details</h3>
+                <p className="mt-1 text-sm text-slate-500">Complete these details to submit your booking.</p>
+              </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="inline-flex min-h-[48px] items-center justify-center gap-2 rounded-[8px] bg-[#159cf0] px-8 text-[15px] font-bold text-white transition-opacity hover:opacity-90 disabled:opacity-60 max-[520px]:order-1 max-[520px]:w-full"
-          >
-            {isSubmitting ? "Submitting..." : "Book Now"} <ArrowRight size={18} />
-          </button>
-        </div>
+              {tripType === "Return" && (
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                  <div>
+                    <label htmlFor="return-date" className="mb-2 block text-sm font-semibold text-slate-700">Return date</label>
+                    <input
+                      id="return-date"
+                      name="returnDate"
+                      type="date"
+                      required
+                      min={new Date().toLocaleDateString("en-CA")}
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="return-time" className="mb-2 block text-sm font-semibold text-slate-700">Return time</label>
+                    <input
+                      id="return-time"
+                      name="returnTime"
+                      type="time"
+                      required
+                      className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                    />
+                  </div>
+                </div>
+              )}
 
-        {notice && (
-          <p
-            className="col-span-full mt-3 mb-0 rounded-lg bg-red-500/20 px-3.5 py-3 text-sm text-red-100 border border-red-500/50"
-            role="status"
-          >
-            {notice}
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div>
+                  <label htmlFor="vehicle" className="mb-2 block text-sm font-semibold text-slate-700">
+                    <CarFront className="mr-2 inline-block h-4 w-4" /> Vehicle
+                  </label>
+                  <select id="vehicle" name="vehicle" required defaultValue="" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100">
+                    <option value="" disabled>Select a vehicle</option>
+                    <option value="Sedan">Sedan</option>
+                    <option value="SUV">SUV</option>
+                    <option value="Luxury">Luxury</option>
+                    <option value="Minivan">Minivan</option>
+                    <option value="Minibus">Minibus</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="passengers" className="mb-2 block text-sm font-semibold text-slate-700">
+                    <Users className="mr-2 inline-block h-4 w-4" /> Passengers
+                  </label>
+                  <select id="passengers" name="passengers" defaultValue="1" required className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100">
+                    {Array.from({ length: 13 }, (_, index) => index + 1).map((count) => (
+                      <option key={count} value={count}>{count} {count === 1 ? "passenger" : "passengers"}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="service" className="mb-2 block text-sm font-semibold text-slate-700">Service type</label>
+                  <select id="service" name="service" defaultValue="General Transfer" required className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100">
+                    <option value="General Transfer">General Transfer</option>
+                    <option value="Airport Transfer">Airport Transfer</option>
+                    <option value="Corporate Travel">Corporate Travel</option>
+                    <option value="Event Transfer">Event Transfer</option>
+                    <option value="Private Chauffeur">Private Chauffeur</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label htmlFor="customer-name" className="mb-2 block text-sm font-semibold text-slate-700">
+                    <UserRound className="mr-2 inline-block h-4 w-4" /> Full name
+                  </label>
+                  <input id="customer-name" name="name" type="text" autoComplete="name" required minLength={2} maxLength={100} placeholder="Your full name" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100" />
+                </div>
+
+                <div>
+                  <label htmlFor="customer-email" className="mb-2 block text-sm font-semibold text-slate-700">
+                    <Mail className="mr-2 inline-block h-4 w-4" /> Email address (optional)
+                  </label>
+                  <input id="customer-email" name="email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100" />
+                </div>
+
+                <div>
+                  <label htmlFor="customer-phone" className="mb-2 block text-sm font-semibold text-slate-700">
+                    <Phone className="mr-2 inline-block h-4 w-4" /> Phone number
+                  </label>
+                  <input id="customer-phone" name="phone" type="tel" autoComplete="tel" required minLength={7} maxLength={25} placeholder="Your phone number" className="w-full rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100" />
+                </div>
+              </div>
+
+              <div>
+                <label htmlFor="special-instructions" className="mb-2 block text-sm font-semibold text-slate-700">Special instructions (optional)</label>
+                <textarea
+                  id="special-instructions"
+                  name="specialInstructions"
+                  rows={3}
+                  maxLength={2000}
+                  value={specialInstructions}
+                  onChange={(event) => setSpecialInstructions(event.target.value)}
+                  placeholder="Luggage details, child seats, accessibility needs, or other requests"
+                  className="w-full resize-y rounded-xl border border-gray-200 bg-white px-3 py-3 text-sm outline-none focus:border-green-600 focus:ring-2 focus:ring-green-100"
+                />
+              </div>
+            </div>
+          )}
+
+          {notice && (
+            <div role="alert" className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {notice}
+            </div>
+          )}
+
+          <p className="text-xs leading-5 text-slate-500">
+            Route distance and duration are estimates calculated from road data. Actual travel time may vary with traffic and road conditions.
           </p>
-        )}
-      </form>
+        </form>
+      </div>
     </section>
   );
 }

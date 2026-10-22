@@ -19,6 +19,13 @@ model Booking {
   specialInstructions String?
   status             String  @default("PENDING")
   assignedDriverId   Int?
+  pickupLat       Float?
+pickupLng       Float?
+destinationLat   Float?
+destinationLng   Float?
+
+distanceMeters  Float?
+durationSeconds Float?
    createdAt    TimestamptzJsDate @default(now())
   updatedAt    TimestamptzJsDate @default(now())
 }

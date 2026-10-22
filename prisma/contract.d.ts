@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'69da6ff22b04aa924d54dd7389478b0347a09bb5e3cc0599dd43719cda6236d9'>;
+  StorageHashBase<'8390e0a3e8765b90af44cdba2a7bc5ea322098ad99e79b47f056f4fd0ad07b80'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -276,11 +276,17 @@ export namespace Models {
     customerName: FieldOutputTypes['public']['Booking']['customerName'];
     customerPhone: FieldOutputTypes['public']['Booking']['customerPhone'];
     destination: FieldOutputTypes['public']['Booking']['destination'];
+    destinationLat: FieldOutputTypes['public']['Booking']['destinationLat'];
+    destinationLng: FieldOutputTypes['public']['Booking']['destinationLng'];
+    distanceMeters: FieldOutputTypes['public']['Booking']['distanceMeters'];
+    durationSeconds: FieldOutputTypes['public']['Booking']['durationSeconds'];
     id: FieldOutputTypes['public']['Booking']['id'];
     journeyDate: FieldOutputTypes['public']['Booking']['journeyDate'];
     journeyTime: FieldOutputTypes['public']['Booking']['journeyTime'];
     passengerCount: FieldOutputTypes['public']['Booking']['passengerCount'];
     pickup: FieldOutputTypes['public']['Booking']['pickup'];
+    pickupLat: FieldOutputTypes['public']['Booking']['pickupLat'];
+    pickupLng: FieldOutputTypes['public']['Booking']['pickupLng'];
     reference: FieldOutputTypes['public']['Booking']['reference'];
     returnDate: FieldOutputTypes['public']['Booking']['returnDate'];
     returnTime: FieldOutputTypes['public']['Booking']['returnTime'];
@@ -385,6 +391,30 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly many: false;
                 };
+                readonly destinationLat: {
+                  readonly dataType: 'pg/float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly destinationLng: {
+                  readonly dataType: 'pg/float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly distanceMeters: {
+                  readonly dataType: 'pg/float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly durationSeconds: {
+                  readonly dataType: 'pg/float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly id: {
                   readonly dataType: 'pg/int4';
                   readonly codecId: 'pg/int4@1';
@@ -417,6 +447,18 @@ type ContractBase = Omit<
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly pickupLat: {
+                  readonly dataType: 'pg/float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly pickupLng: {
+                  readonly dataType: 'pg/float8';
+                  readonly codecId: 'pg/float8@1';
+                  readonly nullable: true;
                   readonly many: false;
                 };
                 readonly reference: {
@@ -687,6 +729,22 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly destinationLat: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
+              readonly destinationLng: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
+              readonly distanceMeters: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
+              readonly durationSeconds: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
@@ -709,6 +767,14 @@ type ContractBase = Omit<
               readonly pickup: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly pickupLat: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
+              };
+              readonly pickupLng: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/float8@1' };
               };
               readonly reference: {
                 readonly nullable: false;
@@ -764,11 +830,17 @@ type ContractBase = Omit<
                 readonly customerName: { readonly column: 'customerName' };
                 readonly customerPhone: { readonly column: 'customerPhone' };
                 readonly destination: { readonly column: 'destination' };
+                readonly destinationLat: { readonly column: 'destinationLat' };
+                readonly destinationLng: { readonly column: 'destinationLng' };
+                readonly distanceMeters: { readonly column: 'distanceMeters' };
+                readonly durationSeconds: { readonly column: 'durationSeconds' };
                 readonly id: { readonly column: 'id' };
                 readonly journeyDate: { readonly column: 'journeyDate' };
                 readonly journeyTime: { readonly column: 'journeyTime' };
                 readonly passengerCount: { readonly column: 'passengerCount' };
                 readonly pickup: { readonly column: 'pickup' };
+                readonly pickupLat: { readonly column: 'pickupLat' };
+                readonly pickupLng: { readonly column: 'pickupLng' };
                 readonly reference: { readonly column: 'reference' };
                 readonly returnDate: { readonly column: 'returnDate' };
                 readonly returnTime: { readonly column: 'returnTime' };

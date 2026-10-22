@@ -69,6 +69,34 @@
                   "kind": "scalar"
                 }
               },
+              "destinationLat": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "destinationLng": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "distanceMeters": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "durationSeconds": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
               "id": {
                 "nullable": false,
                 "type": {
@@ -101,6 +129,20 @@
                 "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupLat": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
+                  "kind": "scalar"
+                }
+              },
+              "pickupLng": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/float8@1",
                   "kind": "scalar"
                 }
               },
@@ -189,6 +231,18 @@
                 "destination": {
                   "column": "destination"
                 },
+                "destinationLat": {
+                  "column": "destinationLat"
+                },
+                "destinationLng": {
+                  "column": "destinationLng"
+                },
+                "distanceMeters": {
+                  "column": "distanceMeters"
+                },
+                "durationSeconds": {
+                  "column": "durationSeconds"
+                },
                 "id": {
                   "column": "id"
                 },
@@ -203,6 +257,12 @@
                 },
                 "pickup": {
                   "column": "pickup"
+                },
+                "pickupLat": {
+                  "column": "pickupLat"
+                },
+                "pickupLng": {
+                  "column": "pickupLng"
                 },
                 "reference": {
                   "column": "reference"
@@ -474,6 +534,26 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
+                "destinationLat": {
+                  "codecId": "pg/float8@1",
+                  "dataType": "pg/float8",
+                  "nullable": true
+                },
+                "destinationLng": {
+                  "codecId": "pg/float8@1",
+                  "dataType": "pg/float8",
+                  "nullable": true
+                },
+                "distanceMeters": {
+                  "codecId": "pg/float8@1",
+                  "dataType": "pg/float8",
+                  "nullable": true
+                },
+                "durationSeconds": {
+                  "codecId": "pg/float8@1",
+                  "dataType": "pg/float8",
+                  "nullable": true
+                },
                 "id": {
                   "codecId": "pg/int4@1",
                   "dataType": "pg/int4",
@@ -502,6 +582,16 @@
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
                   "nullable": false
+                },
+                "pickupLat": {
+                  "codecId": "pg/float8@1",
+                  "dataType": "pg/float8",
+                  "nullable": true
+                },
+                "pickupLng": {
+                  "codecId": "pg/float8@1",
+                  "dataType": "pg/float8",
+                  "nullable": true
                 },
                 "reference": {
                   "codecId": "pg/text@1",
@@ -740,7 +830,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "69da6ff22b04aa924d54dd7389478b0347a09bb5e3cc0599dd43719cda6236d9"
+    "storageHash": "8390e0a3e8765b90af44cdba2a7bc5ea322098ad99e79b47f056f4fd0ad07b80"
   },
   "capabilities": {
     "postgres": {
