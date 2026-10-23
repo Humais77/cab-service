@@ -6,6 +6,7 @@ import {
   useMemo,
   useState,
   type FormEvent,
+  type ReactNode,
 } from "react";
 import {
   LayoutDashboard,
@@ -22,7 +23,6 @@ import {
   Phone,
   MapPin,
   Clock,
-  UserRound,
   CheckCircle2,
   XCircle,
   Menu,
@@ -31,6 +31,7 @@ import {
   LoaderCircle,
   CreditCard,
   MessageSquare,
+  AlertTriangle,
 } from "lucide-react";
 
 type Status =
@@ -102,6 +103,7 @@ type Payment = {
   stripePaymentIntentId?: string | null;
   bookingStatus: string;
 };
+
 type ContactEnquiry = {
   id: number;
   name: string;
@@ -112,6 +114,7 @@ type ContactEnquiry = {
   createdAt: string;
   updatedAt: string;
 };
+
 type Tab =
   | "overview"
   | "bookings"
@@ -121,6 +124,20 @@ type Tab =
   | "services"
   | "contact";
 
+type ResourceKind = "drivers" | "vehicles" | "services";
+
+type ResourceFormState = {
+  kind: ResourceKind;
+  item?: Driver | Vehicle | ServiceType;
+};
+
+type ConfirmState = {
+  title: string;
+  message: string;
+  confirmLabel?: string;
+  onConfirm: () => Promise<void> | void;
+};
+
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
   { id: "bookings", label: "Bookings", icon: CalendarDays },
@@ -128,9 +145,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "vehicles", label: "Vehicles", icon: CarFront },
   { id: "services", label: "Service types", icon: Settings2 },
   { id: "payments", label: "Payments", icon: CreditCard },
-  {
-    id: "contact", label: "Contact Enquiries", icon: MessageSquare,
-  }
+  { id: "contact", label: "Contact Enquiries", icon: MessageSquare },
 ];
 
 const statuses: Status[] = [
@@ -181,6 +196,334 @@ async function readJson(response: Response) {
   return result;
 }
 
+/* ------------------------------------------------------------------ */
+/* Generic Modal                                                       */
+/* ------------------------------------------------------------------ */
+function Modal({
+  open,
+  title,
+  onClose,
+  children,
+  footer,
+  size = "md",
+}: {
+  open: boolean;
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  footer?: ReactNode;
+  size?: "sm" | "md" | "lg";
+}) {
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") onClose();
+    };
+    window.addEventListener("keydown", onKey);
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = "";
+    };
+  }, [open, onClose]);
+
+  if (!open) return null;
+
+  const maxWidth =
+    size === "sm" ? "max-w-md" : size === "lg" ? "max-w-2xl" : "max-w-lg";
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/50 p-0 sm:items-center sm:p-4"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onClose();
+      }}
+    >
+      <div
+        className={`w-full ${maxWidth} rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+      >
+        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <h2 className="text-lg font-bold text-slate-900">{title}</h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100 hover:text-slate-900"
+          >
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="max-h-[65vh] overflow-y-auto px-5 py-4">
+          {children}
+        </div>
+
+        {footer && (
+          <div className="flex items-center justify-end gap-2 border-t border-slate-200 bg-slate-50 px-5 py-3">
+            {footer}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Resource form (drivers / vehicles / services)                       */
+/* ------------------------------------------------------------------ */
+function ResourceFormModal({
+  state,
+  onClose,
+  onSubmit,
+  busy,
+}: {
+  state: ResourceFormState;
+  onClose: () => void;
+  onSubmit: (payload: Record<string, unknown>) => Promise<void>;
+  busy: boolean;
+}) {
+  const { kind, item } = state;
+  const isEditing = Boolean(item);
+  const driver = kind === "drivers" ? (item as Driver | undefined) : undefined;
+  const vehicle =
+    kind === "vehicles" ? (item as Vehicle | undefined) : undefined;
+  const service =
+    kind === "services" ? (item as ServiceType | undefined) : undefined;
+
+  const [name, setName] = useState(item?.name ?? "");
+  const [phone, setPhone] = useState(driver?.phone ?? "");
+  const [capacity, setCapacity] = useState(
+    String(vehicle?.capacity ?? 4),
+  );
+  const [description, setDescription] = useState(
+    (vehicle?.description ?? service?.description ?? "") || "",
+  );
+  const [active, setActive] = useState(item?.active ?? true);
+  const [formError, setFormError] = useState("");
+
+  const label =
+    kind === "drivers"
+      ? "Driver"
+      : kind === "vehicles"
+        ? "Vehicle"
+        : "Service type";
+
+  async function handleSubmit(event: FormEvent) {
+    event.preventDefault();
+    setFormError("");
+
+    const trimmedName = name.trim();
+    if (!trimmedName) {
+      setFormError("Name is required.");
+      return;
+    }
+
+    const payload: Record<string, unknown> = {
+      name: trimmedName,
+      active,
+    };
+
+    if (kind === "drivers") {
+      const trimmedPhone = phone.trim();
+      if (!trimmedPhone) {
+        setFormError("Driver phone is required.");
+        return;
+      }
+      payload.phone = trimmedPhone;
+    }
+
+    if (kind === "vehicles") {
+      const value = Number(capacity);
+      if (!Number.isInteger(value) || value < 1 || value > 13) {
+        setFormError(
+          "Vehicle capacity must be a whole number between 1 and 13.",
+        );
+        return;
+      }
+      payload.capacity = value;
+      payload.description = description.trim() || null;
+    }
+
+    if (kind === "services") {
+      payload.description = description.trim() || null;
+    }
+
+    try {
+      await onSubmit(payload);
+    } catch (err) {
+      setFormError(err instanceof Error ? err.message : "Unable to save item.");
+    }
+  }
+
+  return (
+    <Modal
+      open
+      title={`${isEditing ? "Edit" : "Add"} ${label.toLowerCase()}`}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            form="resource-form"
+            disabled={busy}
+            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:opacity-60"
+          >
+            {busy && <LoaderCircle size={16} className="animate-spin" />}
+            {busy ? "Saving..." : isEditing ? "Save changes" : "Create"}
+          </button>
+        </>
+      }
+    >
+      <form id="resource-form" onSubmit={handleSubmit} className="space-y-4">
+        <label className="block">
+          <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+            Name <span className="text-red-600">*</span>
+          </span>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            required
+            maxLength={100}
+            placeholder={`${label} name`}
+            className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600"
+          />
+        </label>
+
+        {kind === "drivers" && (
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Phone <span className="text-red-600">*</span>
+            </span>
+            <input
+              value={phone}
+              onChange={(event) => setPhone(event.target.value)}
+              required
+              maxLength={30}
+              placeholder="+61 4xx xxx xxx"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600"
+            />
+          </label>
+        )}
+
+        {kind === "vehicles" && (
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Passenger capacity <span className="text-red-600">*</span>
+            </span>
+            <input
+              type="number"
+              min={1}
+              max={13}
+              value={capacity}
+              onChange={(event) => setCapacity(event.target.value)}
+              required
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600"
+            />
+          </label>
+        )}
+
+        {kind !== "drivers" && (
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Description (optional)
+            </span>
+            <textarea
+              value={description}
+              onChange={(event) => setDescription(event.target.value)}
+              rows={3}
+              maxLength={500}
+              placeholder="Short description shown to admins"
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600"
+            />
+          </label>
+        )}
+
+        <label className="flex items-center gap-3 rounded-xl border border-slate-300 px-3 py-3">
+          <input
+            type="checkbox"
+            checked={active}
+            onChange={(event) => setActive(event.target.checked)}
+            className="h-4 w-4"
+          />
+          <span className="text-sm font-medium text-slate-700">
+            Mark as active
+          </span>
+        </label>
+
+        {formError && (
+          <p className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+            {formError}
+          </p>
+        )}
+      </form>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Confirm dialog                                                      */
+/* ------------------------------------------------------------------ */
+function ConfirmDialog({
+  state,
+  onClose,
+  busy,
+}: {
+  state: ConfirmState;
+  onClose: () => void;
+  busy: boolean;
+}) {
+  return (
+    <Modal
+      open
+      size="sm"
+      title={state.title}
+      onClose={onClose}
+      footer={
+        <>
+          <button
+            type="button"
+            onClick={onClose}
+            className="rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-100"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={async () => {
+              await state.onConfirm();
+            }}
+            className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:opacity-60"
+          >
+            {busy && <LoaderCircle size={16} className="animate-spin" />}
+            {busy ? "Working..." : state.confirmLabel ?? "Delete"}
+          </button>
+        </>
+      }
+    >
+      <div className="flex items-start gap-3">
+        <div className="rounded-full bg-red-50 p-2 text-red-600">
+          <AlertTriangle size={20} />
+        </div>
+        <p className="text-sm leading-6 text-slate-700">{state.message}</p>
+      </div>
+    </Modal>
+  );
+}
+
+/* ------------------------------------------------------------------ */
+/* Main page                                                           */
+/* ------------------------------------------------------------------ */
 export default function AdminDashboardPage() {
   const [tab, setTab] = useState<Tab>("overview");
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -197,6 +540,15 @@ export default function AdminDashboardPage() {
   const [busyId, setBusyId] = useState<number | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [contactEnquiries, setContactEnquiries] = useState<ContactEnquiry[]>([]);
+
+  // Modal state
+  const [resourceForm, setResourceForm] = useState<ResourceFormState | null>(
+    null,
+  );
+  const [resourceBusy, setResourceBusy] = useState(false);
+  const [confirmState, setConfirmState] = useState<ConfirmState | null>(null);
+  const [confirmBusy, setConfirmBusy] = useState(false);
+
   const loadData = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     setError("");
@@ -334,102 +686,55 @@ export default function AdminDashboardPage() {
     }
   }
 
-  async function deleteBooking(booking: Booking) {
-    if (!window.confirm(`Delete booking ${booking.reference}? This cannot be undone.`)) {
-      return;
-    }
-
-    setBusyId(booking.id);
-    setError("");
-    setNotice("");
-
-    try {
-      const response = await fetch(`/api/admin/bookings/${booking.id}`, {
-        method: "DELETE",
-      });
-
-      await readJson(response);
-      setBookings((current) => current.filter((b) => b.id !== booking.id));
-      setNotice(`Booking ${booking.reference} deleted.`);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Delete failed.");
-    } finally {
-      setBusyId(null);
-    }
+  function requestDeleteBooking(booking: Booking) {
+    setConfirmState({
+      title: "Delete booking",
+      message: `Delete booking ${booking.reference} for ${booking.customerName}? This cannot be undone.`,
+      confirmLabel: "Delete booking",
+      onConfirm: async () => {
+        setConfirmBusy(true);
+        setError("");
+        setNotice("");
+        try {
+          const response = await fetch(
+            `/api/admin/bookings/${booking.id}`,
+            { method: "DELETE" },
+          );
+          await readJson(response);
+          setBookings((current) =>
+            current.filter((b) => b.id !== booking.id),
+          );
+          setNotice(`Booking ${booking.reference} deleted.`);
+          setConfirmState(null);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : "Delete failed.");
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
   }
 
-  async function saveResource(
-    resource: "drivers" | "vehicles" | "services",
+  function openResourceForm(
+    kind: ResourceKind,
     item?: Driver | Vehicle | ServiceType,
   ) {
+    setResourceForm({ kind, item });
+  }
+
+  async function submitResourceForm(payload: Record<string, unknown>) {
+    if (!resourceForm) return;
+    const { kind, item } = resourceForm;
     const isEditing = Boolean(item);
-    const name = window.prompt(
-      "Name:",
-      item?.name ?? "",
-    );
-    if (name === null) return;
 
-    const payload: Record<string, unknown> = { name: name.trim() };
-
-    if (resource === "drivers") {
-      const current = item as Driver | undefined;
-      const phone = window.prompt("Driver phone (international format recommended):", current?.phone ?? "");
-      if (phone === null) return;
-      payload.phone = phone.trim();
-
-      const active = window.confirm(
-        "Should this driver be active? Choose Cancel to save as inactive.",
-      );
-      payload.active = active;
-    }
-
-    if (resource === "vehicles") {
-      const current = item as Vehicle | undefined;
-      const capacityInput = window.prompt(
-        "Passenger capacity:",
-        String(current?.capacity ?? 4),
-      );
-      if (capacityInput === null) return;
-
-      const capacity = Number(capacityInput);
-      if (!Number.isInteger(capacity) || capacity < 1 || capacity > 13) {
-        setError("Vehicle capacity must be a whole number between 1 and 13.");
-        return;
-      }
-
-      payload.capacity = capacity;
-      const description = window.prompt(
-        "Vehicle description (optional):",
-        current?.description ?? "",
-      );
-      if (description === null) return;
-      payload.description = description.trim() || null;
-      payload.active = window.confirm("Should this vehicle be active?");
-    }
-
-    if (resource === "services") {
-      const current = item as ServiceType | undefined;
-      const description = window.prompt(
-        "Service description (optional):",
-        current?.description ?? "",
-      );
-      if (description === null) return;
-      payload.description = description.trim() || null;
-      payload.active = window.confirm("Should this service be active?");
-    }
-
-    if (!payload.name) {
-      setError("Name is required.");
-      return;
-    }
-
+    setResourceBusy(true);
     setError("");
     setNotice("");
 
     try {
       const url = isEditing
-        ? `/api/admin/resources/${resource}/${item!.id}`
-        : `/api/admin/resources/${resource}`;
+        ? `/api/admin/resources/${kind}/${item!.id}`
+        : `/api/admin/resources/${kind}`;
 
       const response = await fetch(url, {
         method: isEditing ? "PATCH" : "POST",
@@ -438,40 +743,52 @@ export default function AdminDashboardPage() {
       });
 
       await readJson(response);
-      setNotice(`${resource.slice(0, -1)} ${isEditing ? "updated" : "created"} successfully.`);
+      setNotice(
+        `${kind.slice(0, -1)} ${isEditing ? "updated" : "created"} successfully.`,
+      );
+      setResourceForm(null);
       await loadData(false);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to save item.");
+      throw err instanceof Error ? err : new Error("Unable to save item.");
+    } finally {
+      setResourceBusy(false);
     }
   }
 
-  async function deleteResource(
-    resource: "drivers" | "vehicles" | "services",
+  function requestDeleteResource(
+    kind: ResourceKind,
     item: Driver | Vehicle | ServiceType,
   ) {
-    if (!window.confirm(`Delete "${item.name}"? This cannot be undone.`)) return;
-
-    setError("");
-    setNotice("");
-
-    try {
-      const response = await fetch(
-        `/api/admin/resources/${resource}/${item.id}`,
-        { method: "DELETE" },
-      );
-
-      await readJson(response);
-      setNotice(`${item.name} deleted.`);
-      await loadData(false);
-    } catch (err) {
-      setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to delete item. It may be in use by a booking.",
-      );
-    }
+    setConfirmState({
+      title: `Delete ${kind.slice(0, -1)}`,
+      message: `Delete "${item.name}"? This cannot be undone. If it is used by an existing booking, the server may refuse.`,
+      confirmLabel: "Delete",
+      onConfirm: async () => {
+        setConfirmBusy(true);
+        setError("");
+        setNotice("");
+        try {
+          const response = await fetch(
+            `/api/admin/resources/${kind}/${item.id}`,
+            { method: "DELETE" },
+          );
+          await readJson(response);
+          setNotice(`${item.name} deleted.`);
+          setConfirmState(null);
+          await loadData(false);
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to delete item. It may be in use by a booking.",
+          );
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
+    });
   }
-  
+
   function openDriverWhatsApp(booking: Booking) {
     if (!booking.assignedDriverId) {
       setError("Assign a driver before preparing a WhatsApp message.");
@@ -515,7 +832,6 @@ export default function AdminDashboardPage() {
     );
   }
 
-
   async function verifyPayment(payment: Payment) {
     setBusyId(payment.id);
     setError("");
@@ -533,83 +849,83 @@ export default function AdminDashboardPage() {
         result.verified
           ? `Payment for ${payment.reference} is verified as paid by Stripe.`
           : result.message ||
-          `Stripe has not confirmed payment for ${payment.reference}.`,
+              `Stripe has not confirmed payment for ${payment.reference}.`,
       );
 
       await loadData(false);
     } catch (err) {
       setError(
-        err instanceof Error
-          ? err.message
-          : "Unable to verify payment.",
+        err instanceof Error ? err.message : "Unable to verify payment.",
       );
     } finally {
       setBusyId(null);
     }
   }
+
   async function updateContactEnquiry(
-  enquiry: ContactEnquiry,
-  status: ContactEnquiry["status"],
-) {
-  setBusyId(enquiry.id);
-  setError("");
-  setNotice("");
-
-  try {
-    const response = await fetch(`/api/admin/contact/${enquiry.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ status }),
-    });
-
-    await readJson(response);
-
-    setNotice(`Enquiry from ${enquiry.name} marked as ${status.toLowerCase()}.`);
-    await loadData(false);
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "Unable to update enquiry.",
-    );
-  } finally {
-    setBusyId(null);
-  }
-}
-
-async function deleteContactEnquiry(enquiry: ContactEnquiry) {
-  if (
-    !window.confirm(
-      `Delete the contact enquiry from ${enquiry.name}? This cannot be undone.`,
-    )
+    enquiry: ContactEnquiry,
+    status: ContactEnquiry["status"],
   ) {
-    return;
+    setBusyId(enquiry.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(`/api/admin/contact/${enquiry.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status }),
+      });
+
+      await readJson(response);
+
+      setNotice(
+        `Enquiry from ${enquiry.name} marked as ${status.toLowerCase()}.`,
+      );
+      await loadData(false);
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Unable to update enquiry.",
+      );
+    } finally {
+      setBusyId(null);
+    }
   }
 
-  setBusyId(enquiry.id);
-  setError("");
-  setNotice("");
-
-  try {
-    const response = await fetch(`/api/admin/contact/${enquiry.id}`, {
-      method: "DELETE",
+  function requestDeleteContactEnquiry(enquiry: ContactEnquiry) {
+    setConfirmState({
+      title: "Delete enquiry",
+      message: `Delete the contact enquiry from ${enquiry.name}? This cannot be undone.`,
+      confirmLabel: "Delete enquiry",
+      onConfirm: async () => {
+        setConfirmBusy(true);
+        setError("");
+        setNotice("");
+        try {
+          const response = await fetch(
+            `/api/admin/contact/${enquiry.id}`,
+            { method: "DELETE" },
+          );
+          await readJson(response);
+          setContactEnquiries((current) =>
+            current.filter((item) => item.id !== enquiry.id),
+          );
+          setNotice(`Enquiry from ${enquiry.name} deleted.`);
+          setConfirmState(null);
+        } catch (err) {
+          setError(
+            err instanceof Error
+              ? err.message
+              : "Unable to delete enquiry.",
+          );
+        } finally {
+          setConfirmBusy(false);
+        }
+      },
     });
-
-    await readJson(response);
-
-    setContactEnquiries((current) =>
-      current.filter((item) => item.id !== enquiry.id),
-    );
-
-    setNotice(`Enquiry from ${enquiry.name} deleted.`);
-  } catch (err) {
-    setError(
-      err instanceof Error ? err.message : "Unable to delete enquiry.",
-    );
-  } finally {
-    setBusyId(null);
   }
-}
 
-
+  /* ---------------- Booking renderer ---------------- */
   function renderBookings(limit?: number) {
     const rows = limit
       ? filteredBookings.slice(0, limit)
@@ -641,9 +957,10 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                     {booking.reference}
                   </span>
                   <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusClasses[booking.status] ??
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                      statusClasses[booking.status] ??
                       "bg-slate-100 text-slate-700 ring-slate-200"
-                      }`}
+                    }`}
                   >
                     {booking.status.replaceAll("_", " ")}
                   </span>
@@ -703,7 +1020,8 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                 </p>
                 {booking.tripType === "Return" && (
                   <p className="mt-1 text-xs text-slate-600">
-                    Return: {formatDate(booking.returnDate)} · {booking.returnTime || "—"}
+                    Return: {formatDate(booking.returnDate)} ·{" "}
+                    {booking.returnTime || "—"}
                   </p>
                 )}
               </div>
@@ -803,7 +1121,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
 
               <button
                 type="button"
-                onClick={() => void deleteBooking(booking)}
+                onClick={() => requestDeleteBooking(booking)}
                 className="ml-auto inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50"
               >
                 <Trash2 size={16} />
@@ -816,8 +1134,9 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
     );
   }
 
+  /* ---------------- Resource renderer ---------------- */
   function renderResources(
-    resource: "drivers" | "vehicles" | "services",
+    resource: ResourceKind,
     items: (Driver | Vehicle | ServiceType)[],
   ) {
     return (
@@ -838,7 +1157,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
 
           <button
             type="button"
-            onClick={() => void saveResource(resource)}
+            onClick={() => openResourceForm(resource)}
             className="inline-flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
           >
             <Plus size={17} /> Add new
@@ -862,7 +1181,9 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                   className="flex flex-col justify-between gap-3 p-4 sm:flex-row sm:items-center"
                 >
                   <div className="min-w-0">
-                    <p className="font-semibold text-slate-900">{item.name}</p>
+                    <p className="font-semibold text-slate-900">
+                      {item.name}
+                    </p>
 
                     {resource === "drivers" && (
                       <p className="mt-1 flex items-center gap-2 text-sm text-slate-600">
@@ -890,10 +1211,11 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                     )}
 
                     <span
-                      className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.active
-                        ? "bg-green-50 text-green-700"
-                        : "bg-slate-100 text-slate-600"
-                        }`}
+                      className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                        item.active
+                          ? "bg-green-50 text-green-700"
+                          : "bg-slate-100 text-slate-600"
+                      }`}
                     >
                       {item.active ? "Active" : "Inactive"}
                     </span>
@@ -902,7 +1224,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                   <div className="flex shrink-0 gap-2">
                     <button
                       type="button"
-                      onClick={() => void saveResource(resource, item)}
+                      onClick={() => openResourceForm(resource, item)}
                       className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50"
                     >
                       <Pencil size={15} /> Edit
@@ -910,7 +1232,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
 
                     <button
                       type="button"
-                      onClick={() => void deleteResource(resource, item)}
+                      onClick={() => requestDeleteResource(resource, item)}
                       className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-medium text-red-600 hover:bg-red-50"
                     >
                       <Trash2 size={15} /> Delete
@@ -925,6 +1247,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
     );
   }
 
+  /* ---------------- Payments renderer ---------------- */
   function renderPayments() {
     const formatAUD = (amountCents: number) =>
       new Intl.NumberFormat("en-AU", {
@@ -935,10 +1258,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
     if (payments.length === 0) {
       return (
         <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
-          <CreditCard
-            className="mx-auto mb-3 text-slate-400"
-            size={32}
-          />
+          <CreditCard className="mx-auto mb-3 text-slate-400" size={32} />
           <p className="font-semibold text-slate-800">
             No payment records found
           </p>
@@ -991,10 +1311,11 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                   </p>
 
                   <span
-                    className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${paid
+                    className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                      paid
                         ? "bg-green-50 text-green-700"
                         : "bg-amber-50 text-amber-700"
-                      }`}
+                    }`}
                   >
                     {payment.paymentStatus.replaceAll("_", " ")}
                   </span>
@@ -1076,10 +1397,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                     className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isBusy ? (
-                      <LoaderCircle
-                        size={16}
-                        className="animate-spin"
-                      />
+                      <LoaderCircle size={16} className="animate-spin" />
                     ) : (
                       <RefreshCw size={16} />
                     )}
@@ -1094,6 +1412,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
     );
   }
 
+  /* ---------------- Contact enquiries renderer ---------------- */
   function renderContactEnquiries() {
     const enquiryStatusClasses: Record<ContactEnquiry["status"], string> = {
       NEW: "bg-amber-50 text-amber-700 ring-amber-200",
@@ -1112,7 +1431,8 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
             No contact enquiries yet
           </p>
           <p className="mt-1 text-sm text-slate-500">
-            Customer messages submitted through the contact form will appear here.
+            Customer messages submitted through the contact form will appear
+            here.
           </p>
         </div>
       );
@@ -1123,9 +1443,8 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
         <div>
           <h2 className="text-lg font-bold">Contact enquiries</h2>
           <p className="mt-1 text-sm text-slate-500">
-            {contactEnquiries.filter((item) => item.status === "NEW").length} new
-            {" · "}
-            {contactEnquiries.length} total
+            {contactEnquiries.filter((item) => item.status === "NEW").length}{" "}
+            new · {contactEnquiries.length} total
           </p>
         </div>
 
@@ -1145,8 +1464,9 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                     </h3>
 
                     <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${enquiryStatusClasses[enquiry.status]
-                        }`}
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
+                        enquiryStatusClasses[enquiry.status]
+                      }`}
                     >
                       {enquiry.status}
                     </span>
@@ -1230,7 +1550,7 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                 <button
                   type="button"
                   disabled={isBusy}
-                  onClick={() => void deleteContactEnquiry(enquiry)}
+                  onClick={() => requestDeleteContactEnquiry(enquiry)}
                   className="ml-auto inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
                 >
                   <Trash2 size={16} />
@@ -1243,7 +1563,6 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
       </section>
     );
   }
-
 
   const activeTab = tabs.find((item) => item.id === tab);
 
@@ -1266,10 +1585,11 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${tab === id
-                ? "bg-slate-900 text-white"
-                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                }`}
+              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
+                tab === id
+                  ? "bg-slate-900 text-white"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+              }`}
             >
               <Icon size={18} />
               {label}
@@ -1298,7 +1618,11 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
           <div className="flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl">
             <div className="flex items-center justify-between border-b p-4">
               <span className="font-bold">Silver Cab Sydney Admin</span>
-              <button type="button" onClick={() => setMobileMenu(false)} aria-label="Close menu">
+              <button
+                type="button"
+                onClick={() => setMobileMenu(false)}
+                aria-label="Close menu"
+              >
                 <X size={22} />
               </button>
             </div>
@@ -1311,8 +1635,9 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                     setTab(id);
                     setMobileMenu(false);
                   }}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium ${tab === id ? "bg-slate-900 text-white" : "hover:bg-slate-100"
-                    }`}
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium ${
+                    tab === id ? "bg-slate-900 text-white" : "hover:bg-slate-100"
+                  }`}
                 >
                   <Icon size={18} /> {label}
                 </button>
@@ -1367,10 +1692,17 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
 
         <main className="mx-auto max-w-7xl space-y-6 p-4 sm:p-8">
           {error && (
-            <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+            <div
+              role="alert"
+              className="flex items-start gap-3 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+            >
               <XCircle className="mt-0.5 shrink-0" size={18} />
               <div className="flex-1">{error}</div>
-              <button type="button" onClick={() => setError("")} aria-label="Dismiss error">
+              <button
+                type="button"
+                onClick={() => setError("")}
+                aria-label="Dismiss error"
+              >
                 <X size={17} />
               </button>
             </div>
@@ -1380,7 +1712,11 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
             <div className="flex items-start gap-3 rounded-xl border border-green-200 bg-green-50 p-4 text-sm text-green-800">
               <CheckCircle2 className="mt-0.5 shrink-0" size={18} />
               <div className="flex-1">{notice}</div>
-              <button type="button" onClick={() => setNotice("")} aria-label="Dismiss notice">
+              <button
+                type="button"
+                onClick={() => setNotice("")}
+                aria-label="Dismiss notice"
+              >
                 <X size={17} />
               </button>
             </div>
@@ -1417,21 +1753,48 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
 
                   <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                     {[
-                      { label: "Total bookings", value: counts.total, icon: CalendarDays, style: "bg-blue-50 text-blue-700" },
-                      { label: "Pending requests", value: counts.pending, icon: Clock, style: "bg-amber-50 text-amber-700" },
-                      { label: "Active journeys", value: counts.active, icon: CarFront, style: "bg-violet-50 text-violet-700" },
-                      { label: "Completed journeys", value: counts.completed, icon: CheckCircle2, style: "bg-green-50 text-green-700" },
+                      {
+                        label: "Total bookings",
+                        value: counts.total,
+                        icon: CalendarDays,
+                        style: "bg-blue-50 text-blue-700",
+                      },
+                      {
+                        label: "Pending requests",
+                        value: counts.pending,
+                        icon: Clock,
+                        style: "bg-amber-50 text-amber-700",
+                      },
+                      {
+                        label: "Active journeys",
+                        value: counts.active,
+                        icon: CarFront,
+                        style: "bg-violet-50 text-violet-700",
+                      },
+                      {
+                        label: "Completed journeys",
+                        value: counts.completed,
+                        icon: CheckCircle2,
+                        style: "bg-green-50 text-green-700",
+                      },
                     ].map((stat) => {
                       const Icon = stat.icon;
                       return (
-                        <div key={stat.label} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                        <div
+                          key={stat.label}
+                          className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm"
+                        >
                           <div className="flex items-center justify-between">
-                            <span className="text-sm font-medium text-slate-500">{stat.label}</span>
+                            <span className="text-sm font-medium text-slate-500">
+                              {stat.label}
+                            </span>
                             <span className={`rounded-xl p-2.5 ${stat.style}`}>
                               <Icon size={19} />
                             </span>
                           </div>
-                          <p className="mt-4 text-3xl font-bold">{stat.value}</p>
+                          <p className="mt-4 text-3xl font-bold">
+                            {stat.value}
+                          </p>
                         </div>
                       );
                     })}
@@ -1469,7 +1832,10 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
 
                   <div className="flex flex-col gap-3 sm:flex-row">
                     <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+                      <Search
+                        className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
+                        size={18}
+                      />
                       <input
                         value={search}
                         onChange={(event) => setSearch(event.target.value)}
@@ -1479,7 +1845,9 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                     </div>
                     <select
                       value={statusFilter}
-                      onChange={(event) => setStatusFilter(event.target.value)}
+                      onChange={(event) =>
+                        setStatusFilter(event.target.value)
+                      }
                       className="rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm outline-none focus:border-blue-600"
                     >
                       <option value="ALL">All statuses</option>
@@ -1492,26 +1860,53 @@ async function deleteContactEnquiry(enquiry: ContactEnquiry) {
                   </div>
 
                   <p className="text-sm text-slate-500">
-                    Showing {filteredBookings.length} of {bookings.length} bookings
+                    Showing {filteredBookings.length} of {bookings.length}{" "}
+                    bookings
                   </p>
                   {renderBookings()}
                 </section>
               )}
+
               {tab === "payments" && renderPayments()}
               {tab === "contact" && renderContactEnquiries()}
 
               {tab === "drivers" && renderResources("drivers", drivers)}
               {tab === "vehicles" && renderResources("vehicles", vehicles)}
               {tab === "services" && renderResources("services", services)}
-
             </>
           )}
 
           <footer className="border-t border-slate-200 pt-5 text-xs text-slate-500">
-            Silver Cab Sydney Admin Panel · Keep customer and driver information confidential.
+            Silver Cab Sydney Admin Panel · Keep customer and driver information
+            confidential.
           </footer>
         </main>
       </div>
+
+      {/* Resource create/edit modal */}
+      {resourceForm && (
+        <ResourceFormModal
+          state={resourceForm}
+          busy={resourceBusy}
+          onClose={() => {
+            if (resourceBusy) return;
+            setResourceForm(null);
+          }}
+          onSubmit={submitResourceForm}
+        />
+      )}
+
+      {/* Confirmation modal */}
+      {confirmState && (
+        <ConfirmDialog
+          state={confirmState}
+          busy={confirmBusy}
+          onClose={() => {
+            if (confirmBusy) return;
+            setConfirmState(null);
+          }}
+        />
+      )}
     </div>
   );
 }
