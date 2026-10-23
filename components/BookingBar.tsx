@@ -27,6 +27,16 @@ const EMPTY_ROUTE: RouteSelection = {
 };
 
 type PaymentMethod = "STRIPE" | "PAY_DRIVER";
+type BookingVehicle = {
+  id: number;
+  name: string;
+  capacity: number;
+};
+
+type BookingService = {
+  id: number;
+  name: string;
+};
 
 const TODAY_ISO = new Date().toLocaleDateString("en-CA");
 
@@ -70,6 +80,11 @@ export default function BookingBar() {
   const [notice, setNotice] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
+  const [vehicleOptions, setVehicleOptions] = useState<BookingVehicle[]>([]);
+const [serviceOptions, setServiceOptions] = useState<BookingService[]>([]);
+const [optionsLoading, setOptionsLoading] = useState(true);
+const [optionsError, setOptionsError] = useState("");
+const [passengerCount, setPassengerCount] = useState("1");
 
   const [estimate, setEstimate] = useState<{
     loading: boolean;
@@ -162,6 +177,48 @@ export default function BookingBar() {
     };
   }, [routeSelection, vehicle, tripType]);
 
+  useEffect(() => {
+  let cancelled = false;
+
+  async function loadBookingOptions() {
+    try {
+      const response = await fetch("/api/booking-options", {
+        cache: "no-store",
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          result.error || "Unable to load vehicles and services.",
+        );
+      }
+
+      if (!cancelled) {
+        setVehicleOptions(result.vehicles ?? []);
+        setServiceOptions(result.services ?? []);
+        setOptionsError("");
+      }
+    } catch (error) {
+      if (!cancelled) {
+        setOptionsError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load booking options.",
+        );
+      }
+    } finally {
+      if (!cancelled) setOptionsLoading(false);
+    }
+  }
+
+  void loadBookingOptions();
+
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
@@ -193,7 +250,7 @@ export default function BookingBar() {
     const customerEmail = String(data.get("email") ?? "").trim();
     const customerPhone = String(data.get("phone") ?? "").trim();
     const vehicleName = String(data.get("vehicle") ?? "");
-    const passengerCount = Number(data.get("passengers") ?? 1);
+    const passengers = Number(passengerCount);
     const journeyDate = String(data.get("date") ?? "");
     const journeyTime = String(data.get("time") ?? "");
     const returnDate =
@@ -257,11 +314,20 @@ export default function BookingBar() {
       returnDate,
       returnTime,
       vehicleName,
-      passengerCount,
+      passengerCount: passengers,
       serviceType: String(data.get("service") ?? "General Transfer"),
       specialInstructions: specialInstructions.trim(),
       paymentMethod,
     };
+    if (
+  !selectedVehicle ||
+  !selectedVehicle.capacity ||
+  passengers < 1 ||
+  passengers > selectedVehicle.capacity
+) {
+  setNotice("Please select a valid vehicle and passenger count.");
+  return;
+}
 
     setIsSubmitting(true);
 
@@ -318,6 +384,21 @@ export default function BookingBar() {
       setIsSubmitting(false);
     }
   }
+  const selectedVehicle = vehicleOptions.find(
+  (item) => item.name === vehicle,
+);
+
+const maxPassengers = selectedVehicle?.capacity ?? 0;
+
+useEffect(() => {
+  if (!selectedVehicle) return;
+
+  setPassengerCount((current) =>
+    Number(current) > selectedVehicle.capacity
+      ? String(selectedVehicle.capacity)
+      : current,
+  );
+}, [selectedVehicle]);
 
   return (
     <section
@@ -495,21 +576,28 @@ export default function BookingBar() {
                   </label>
 
                   <select
-                    id="vehicle"
-                    name="vehicle"
-                    required={showOptions}
-                    value={vehicle}
-                    onChange={(event) => setVehicle(event.target.value)}
-                    className={inputClass}
-                  >
-                    <option value="" disabled>
-                      Select a vehicle
-                    </option>
-                    <option value="Sedan">Sedan</option>
-                    <option value="SUV">SUV</option>
-                    <option value="Minivan">Minivan</option>
-                    <option value="Minibus">Minibus</option>
-                  </select>
+  id="vehicle"
+  name="vehicle"
+  required={showOptions}
+  value={vehicle}
+  onChange={(event) => setVehicle(event.target.value)}
+  disabled={optionsLoading || vehicleOptions.length === 0}
+  className={inputClass}
+>
+  <option value="">
+    {optionsLoading
+      ? "Loading vehicles..."
+      : vehicleOptions.length
+        ? "Select a vehicle"
+        : "No vehicles available"}
+  </option>
+
+  {vehicleOptions.map((item) => (
+    <option key={item.id} value={item.name}>
+      {item.name} — up to {item.capacity} passengers
+    </option>
+  ))}
+</select>
                 </div>
 
                 <div>
@@ -519,20 +607,29 @@ export default function BookingBar() {
                   </label>
 
                   <select
-                    id="passengers"
-                    name="passengers"
-                    defaultValue="1"
-                    required={showOptions}
-                    className={inputClass}
-                  >
-                    {Array.from({ length: 13 }, (_, index) => index + 1).map(
-                      (count) => (
-                        <option key={count} value={count}>
-                          {count} {count === 1 ? "passenger" : "passengers"}
-                        </option>
-                      )
-                    )}
-                  </select>
+  id="passengers"
+  name="passengers"
+  value={passengerCount}
+  onChange={(event) => setPassengerCount(event.target.value)}
+  required={showOptions}
+  disabled={!selectedVehicle}
+  className={inputClass}
+>
+  {Array.from(
+    { length: maxPassengers },
+    (_, index) => index + 1,
+  ).map((count) => (
+    <option key={count} value={count}>
+      {count} {count === 1 ? "passenger" : "passengers"}
+    </option>
+  ))}
+</select>
+
+{selectedVehicle && (
+  <p className="mt-1 text-xs text-slate-500">
+    Maximum capacity: {selectedVehicle.capacity} passengers
+  </p>
+)}
                 </div>
 
                 <div>
@@ -541,17 +638,26 @@ export default function BookingBar() {
                   </label>
 
                   <select
-                    id="service"
-                    name="service"
-                    defaultValue="General Transfer"
-                    className={inputClass}
-                  >
-                    <option value="General Transfer">General Transfer</option>
-                    <option value="Airport Transfer">Airport Transfer</option>
-                    <option value="Corporate Travel">Corporate Travel</option>
-                    <option value="Event Transfer">Event Transfer</option>
-                    <option value="On Demand">On Demand</option>
-                  </select>
+  id="service"
+  name="service"
+  defaultValue=""
+  className={inputClass}
+  disabled={optionsLoading || serviceOptions.length === 0}
+>
+  <option value="" disabled>
+    {optionsLoading
+      ? "Loading services..."
+      : serviceOptions.length
+        ? "Select a service"
+        : "No services available"}
+  </option>
+
+  {serviceOptions.map((item) => (
+    <option key={item.id} value={item.name}>
+      {item.name}
+    </option>
+  ))}
+</select>
                 </div>
 
                 <div>
@@ -755,6 +861,11 @@ export default function BookingBar() {
               {notice}
             </div>
           )}
+          {optionsError && (
+  <p role="alert" className="text-sm text-red-600">
+    {optionsError} Please refresh the page and try again.
+  </p>
+)}
 
           {/* Submit */}
           <button

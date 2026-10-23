@@ -117,6 +117,55 @@ export async function POST(request: Request) {
       );
     }
   }
+  
+let selectedVehicle;
+let selectedService;
+
+try {
+  const [vehicles, services] = await Promise.all([
+    db.orm.public.Vehicle.all(),
+    db.orm.public.ServiceType.all(),
+  ]);
+
+  selectedVehicle = vehicles.find(
+    (item) => item.active && item.name === data.vehicleName,
+  );
+
+  selectedService = services.find(
+    (item) => item.active && item.name === data.serviceType,
+  );
+} catch (error) {
+  console.error("Booking option validation failed:", error);
+
+  return NextResponse.json(
+    { error: "Unable to validate your selected vehicle and service." },
+    { status: 500 },
+  );
+}
+
+if (!selectedVehicle) {
+  return NextResponse.json(
+    { error: "This vehicle is unavailable. Please select another vehicle." },
+    { status: 400 },
+  );
+}
+
+if (data.passengerCount > selectedVehicle.capacity) {
+  return NextResponse.json(
+    {
+      error: `${selectedVehicle.name} can carry a maximum of ${selectedVehicle.capacity} passengers.`,
+    },
+    { status: 400 },
+  );
+}
+
+if (!selectedService) {
+  return NextResponse.json(
+    { error: "This service is unavailable. Please select another service." },
+    { status: 400 },
+  );
+}
+
 
   let route: Awaited<ReturnType<typeof getDrivingRoute>>;
 
