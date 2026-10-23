@@ -29,6 +29,7 @@ import {
   X,
   ExternalLink,
   LoaderCircle,
+  CreditCard,
 } from "lucide-react";
 
 type Status =
@@ -83,7 +84,31 @@ type ServiceType = {
   active: boolean;
 };
 
-type Tab = "overview" | "bookings" | "drivers" | "vehicles" | "services";
+type Payment = {
+  id: number;
+  reference: string;
+  customerName: string;
+  customerEmail?: string | null;
+  customerPhone: string;
+  pickup: string;
+  destination: string;
+  createdAt: string;
+  amountCents: number;
+  paymentMethod: "STRIPE" | "PAY_DRIVER";
+  paymentStatus: string;
+  paidAt?: string | null;
+  stripeCheckoutSessionId?: string | null;
+  stripePaymentIntentId?: string | null;
+  bookingStatus: string;
+};
+
+type Tab =
+  | "overview"
+  | "bookings"
+  | "payments"
+  | "drivers"
+  | "vehicles"
+  | "services";
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -91,6 +116,7 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "drivers", label: "Drivers", icon: Users },
   { id: "vehicles", label: "Vehicles", icon: CarFront },
   { id: "services", label: "Service types", icon: Settings2 },
+  { id: "payments", label: "Payments", icon: CreditCard },
 ];
 
 const statuses: Status[] = [
@@ -155,42 +181,59 @@ export default function AdminDashboardPage() {
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [mobileMenu, setMobileMenu] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [payments, setPayments] = useState<Payment[]>([]);
 
   const loadData = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     setError("");
 
     try {
-      const [bookingResponse, driverResponse, vehicleResponse, serviceResponse] =
-        await Promise.all([
-          fetch("/api/admin/bookings", { cache: "no-store" }),
-          fetch("/api/admin/resources/drivers", { cache: "no-store" }),
-          fetch("/api/admin/resources/vehicles", { cache: "no-store" }),
-          fetch("/api/admin/resources/services", { cache: "no-store" }),
-        ]);
+      const [
+        bookingResponse,
+        driverResponse,
+        vehicleResponse,
+        serviceResponse,
+        paymentResponse,
+      ] = await Promise.all([
+        fetch("/api/admin/bookings", { cache: "no-store" }),
+        fetch("/api/admin/resources/drivers", { cache: "no-store" }),
+        fetch("/api/admin/resources/vehicles", { cache: "no-store" }),
+        fetch("/api/admin/resources/services", { cache: "no-store" }),
+        fetch("/api/admin/payments", { cache: "no-store" }),
+      ]);
 
       // A protected API returning 401 means the admin must log in.
       if (
-        [bookingResponse, driverResponse, vehicleResponse, serviceResponse].some(
-          (response) => response.status === 401,
-        )
+        [
+          bookingResponse,
+          driverResponse,
+          vehicleResponse,
+          serviceResponse,
+          paymentResponse,
+        ].some((response) => response.status === 401)
       ) {
         window.location.replace("/admin/login");
         return;
       }
-
-      const [bookingData, driverData, vehicleData, serviceData] =
-        await Promise.all([
-          readJson(bookingResponse),
-          readJson(driverResponse),
-          readJson(vehicleResponse),
-          readJson(serviceResponse),
-        ]);
+      const [
+        bookingData,
+        driverData,
+        vehicleData,
+        serviceData,
+        paymentData,
+      ] = await Promise.all([
+        readJson(bookingResponse),
+        readJson(driverResponse),
+        readJson(vehicleResponse),
+        readJson(serviceResponse),
+        readJson(paymentResponse),
+      ]);
 
       setBookings(bookingData.bookings ?? []);
       setDrivers(driverData.items ?? []);
       setVehicles(vehicleData.items ?? []);
       setServices(serviceData.items ?? []);
+      setPayments(paymentData.payments ?? []);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to load dashboard.",
@@ -459,6 +502,40 @@ export default function AdminDashboardPage() {
     );
   }
 
+
+  async function verifyPayment(payment: Payment) {
+    setBusyId(payment.id);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch(
+        `/api/admin/payments/${payment.id}/verify`,
+        { method: "POST" },
+      );
+
+      const result = await readJson(response);
+
+      setNotice(
+        result.verified
+          ? `Payment for ${payment.reference} is verified as paid by Stripe.`
+          : result.message ||
+          `Stripe has not confirmed payment for ${payment.reference}.`,
+      );
+
+      await loadData(false);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to verify payment.",
+      );
+    } finally {
+      setBusyId(null);
+    }
+  }
+
+
   function renderBookings(limit?: number) {
     const rows = limit
       ? filteredBookings.slice(0, limit)
@@ -490,10 +567,9 @@ export default function AdminDashboardPage() {
                     {booking.reference}
                   </span>
                   <span
-                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${
-                      statusClasses[booking.status] ??
+                    className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${statusClasses[booking.status] ??
                       "bg-slate-100 text-slate-700 ring-slate-200"
-                    }`}
+                      }`}
                   >
                     {booking.status.replaceAll("_", " ")}
                   </span>
@@ -740,11 +816,10 @@ export default function AdminDashboardPage() {
                     )}
 
                     <span
-                      className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                        item.active
-                          ? "bg-green-50 text-green-700"
-                          : "bg-slate-100 text-slate-600"
-                      }`}
+                      className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${item.active
+                        ? "bg-green-50 text-green-700"
+                        : "bg-slate-100 text-slate-600"
+                        }`}
                     >
                       {item.active ? "Active" : "Inactive"}
                     </span>
@@ -775,6 +850,177 @@ export default function AdminDashboardPage() {
       </div>
     );
   }
+  
+function renderPayments() {
+  const formatAUD = (amountCents: number) =>
+    new Intl.NumberFormat("en-AU", {
+      style: "currency",
+      currency: "AUD",
+    }).format(amountCents / 100);
+
+  if (payments.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
+        <CreditCard
+          className="mx-auto mb-3 text-slate-400"
+          size={32}
+        />
+        <p className="font-semibold text-slate-800">
+          No payment records found
+        </p>
+        <p className="mt-1 text-sm text-slate-500">
+          Payments will appear here when bookings are created.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="text-lg font-bold">Payment records</h2>
+        <p className="mt-1 text-sm text-slate-500">
+          View booking payments and verify Stripe transactions directly.
+        </p>
+      </div>
+
+      {payments.map((payment) => {
+        const paid = payment.paymentStatus === "PAID";
+        const isStripe = payment.paymentMethod === "STRIPE";
+        const isBusy = busyId === payment.id;
+
+        return (
+          <article
+            key={payment.id}
+            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+          >
+            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+              <div>
+                <p className="font-bold text-slate-900">
+                  {payment.reference}
+                </p>
+                <h3 className="mt-1 text-lg font-semibold text-slate-800">
+                  {payment.customerName}
+                </h3>
+                <p className="mt-1 text-sm text-slate-500">
+                  {payment.customerEmail || "No email provided"}
+                  {" · "}
+                  {payment.customerPhone}
+                </p>
+              </div>
+
+              <div className="sm:text-right">
+                <p className="text-xl font-bold text-slate-900">
+                  {Number.isSafeInteger(payment.amountCents)
+                    ? formatAUD(payment.amountCents)
+                    : "Amount unavailable"}
+                </p>
+
+                <span
+                  className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    paid
+                      ? "bg-green-50 text-green-700"
+                      : "bg-amber-50 text-amber-700"
+                  }`}
+                >
+                  {payment.paymentStatus.replaceAll("_", " ")}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Payment method
+                </p>
+                <p className="mt-1 text-sm font-medium text-slate-800">
+                  {isStripe ? "Stripe Checkout" : "Pay to driver"}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Booking status
+                </p>
+                <p className="mt-1 text-sm font-medium text-slate-800">
+                  {payment.bookingStatus.replaceAll("_", " ")}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Route
+                </p>
+                <p className="mt-1 break-words text-sm text-slate-800">
+                  {payment.pickup} → {payment.destination}
+                </p>
+              </div>
+
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  Submitted
+                </p>
+                <p className="mt-1 text-sm text-slate-800">
+                  {formatDateTime(payment.createdAt)}
+                </p>
+              </div>
+
+              {payment.paidAt && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Paid at
+                  </p>
+                  <p className="mt-1 text-sm text-slate-800">
+                    {formatDateTime(payment.paidAt)}
+                  </p>
+                </div>
+              )}
+
+              {payment.stripePaymentIntentId && (
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Stripe payment ID
+                  </p>
+                  <p className="mt-1 break-all text-sm text-slate-800">
+                    {payment.stripePaymentIntentId}
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+              <p className="text-xs text-slate-500">
+                {isStripe
+                  ? "Stripe handles payment confirmation automatically."
+                  : "Driver collection is tracked separately from Stripe."}
+              </p>
+
+              {isStripe && (
+                <button
+                  type="button"
+                  disabled={isBusy}
+                  onClick={() => void verifyPayment(payment)}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {isBusy ? (
+                    <LoaderCircle
+                      size={16}
+                      className="animate-spin"
+                    />
+                  ) : (
+                    <RefreshCw size={16} />
+                  )}
+                  {isBusy ? "Verifying..." : "Verify with Stripe"}
+                </button>
+              )}
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
 
   const activeTab = tabs.find((item) => item.id === tab);
 
@@ -797,11 +1043,10 @@ export default function AdminDashboardPage() {
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${
-                tab === id
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-              }`}
+              className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium transition ${tab === id
+                ? "bg-slate-900 text-white"
+                : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                }`}
             >
               <Icon size={18} />
               {label}
@@ -843,9 +1088,8 @@ export default function AdminDashboardPage() {
                     setTab(id);
                     setMobileMenu(false);
                   }}
-                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium ${
-                    tab === id ? "bg-slate-900 text-white" : "hover:bg-slate-100"
-                  }`}
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-medium ${tab === id ? "bg-slate-900 text-white" : "hover:bg-slate-100"
+                    }`}
                 >
                   <Icon size={18} /> {label}
                 </button>
@@ -1030,10 +1274,12 @@ export default function AdminDashboardPage() {
                   {renderBookings()}
                 </section>
               )}
+              {tab === "payments" && renderPayments()}
 
               {tab === "drivers" && renderResources("drivers", drivers)}
               {tab === "vehicles" && renderResources("vehicles", vehicles)}
               {tab === "services" && renderResources("services", services)}
+
             </>
           )}
 
