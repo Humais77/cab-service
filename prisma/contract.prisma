@@ -1,5 +1,15 @@
 // use prisma-8
 
+model User {
+  id           Int      @id @default(autoincrement())
+  username     String   @unique
+  passwordHash String
+  role         String   @default("USER")
+  active       Boolean  @default(true)
+  createdAt    TimestamptzJsDate  @default(now())
+  updatedAt    TimestamptzJsDate  @default(now())
+}
+
 model Booking {
   id                      Int                @id @default(autoincrement())
   reference               String             @unique

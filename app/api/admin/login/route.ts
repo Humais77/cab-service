@@ -1,49 +1,58 @@
-import { createAdminSession, setAdminSession } from "@/src/lib/admin-auth";
+import {
+  createAdminSession,
+  setAdminSession,
+} from "@/src/lib/admin-auth";
+import { db } from "@/prisma/db";
 import { compare } from "bcryptjs";
 import { NextResponse } from "next/server";
+import { z } from "zod";
 
-
+const loginSchema = z.object({
+  username: z.string().trim().min(1).max(50),
+  password: z.string().min(1).max(200),
+});
 
 export async function POST(request: Request) {
   try {
-    const body = await request.json();
-    const username = String(body.username ?? "");
-    const password = String(body.password ?? "");
+    const body = loginSchema.safeParse(await request.json());
 
-    const adminUsername = process.env.ADMIN_USERNAME;
-    const passwordHash = "$2b$12$G52Xdbax66FO7rHFcCVDweAVXDmQZ/ooBdpNfSR12AEBAhYn3gu6S";
-
-    if (!adminUsername || !passwordHash) {
-  console.error("Admin environment check:", {
-    usernameLoaded: Boolean(adminUsername),
-    passwordHashLoaded: Boolean(passwordHash),
-    cwd: process.cwd(),
-  });
-
-  return NextResponse.json(
-    { error: "Admin credentials are not configured." },
-    { status: 500 },
-  );
-}
-
-    if (
-      username !== adminUsername ||
-      !(await compare(password, passwordHash))
-    ) {
+    if (!body.success) {
       return NextResponse.json(
         { error: "Invalid username or password." },
         { status: 401 },
       );
     }
 
-    const token = await createAdminSession();
+    const users = await db.orm.public.User.all();
+
+    const user = users.find(
+      (item: {
+        username: string;
+        role: string;
+        active: boolean;
+      }) =>
+        item.username === body.data.username &&
+        item.role === "ADMIN" &&
+        item.active,
+    );
+
+    if (!user || !(await compare(body.data.password, user.passwordHash))) {
+      return NextResponse.json(
+        { error: "Invalid username or password." },
+        { status: 401 },
+      );
+    }
+
+    const token = await createAdminSession(user.id);
     await setAdminSession(token);
 
     return NextResponse.json({ success: true });
-  } catch {
+  } catch (error) {
+    console.error("Admin login failed:", error);
+
     return NextResponse.json(
-      { error: "Unable to log in." },
-      { status: 400 },
+      { error: "Unable to log in. Please try again." },
+      { status: 500 },
     );
   }
 }

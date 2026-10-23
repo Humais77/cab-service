@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { CheckCircle2, Phone, ArrowLeft } from "lucide-react";
 
@@ -5,11 +6,36 @@ type Props = {
   searchParams: Promise<{ ref?: string }>;
 };
 
-export default async function ThankYouPage({ searchParams }: Props) {
+// Separate component that reads searchParams inside Suspense
+async function BookingReference({ searchParams }: Props) {
   const { ref } = await searchParams;
-  const reference =
-    ref && /^CAB-[A-F0-9]{8}$/.test(ref) ? ref : null;
+  const reference = ref && /^CAB-[A-F0-9]{8}$/.test(ref) ? ref : null;
 
+  if (!reference) return null;
+
+  return (
+    <div className="mb-6 rounded-xl bg-slate-100 p-4">
+      <p className="text-sm text-slate-500">Your booking reference</p>
+      <p className="mt-1 text-xl font-bold tracking-wide">{reference}</p>
+      <p className="mt-2 text-sm text-slate-500">
+        Keep this reference if you contact our support team.
+      </p>
+    </div>
+  );
+}
+
+// Simple fallback that doesn't shift layout
+function ReferenceSkeleton() {
+  return (
+    <div className="mb-6 rounded-xl bg-slate-100 p-4">
+      <p className="text-sm text-slate-500">Your booking reference</p>
+      <div className="mt-2 h-6 w-32 animate-pulse rounded bg-slate-300" />
+      <div className="mt-2 h-4 w-48 animate-pulse rounded bg-slate-300" />
+    </div>
+  );
+}
+
+export default function ThankYouPage({ searchParams }: Props) {
   const phone = process.env.NEXT_PUBLIC_SUPPORT_PHONE || "";
 
   return (
@@ -32,17 +58,10 @@ export default async function ThankYouPage({ searchParams }: Props) {
           contact you shortly to confirm your journey and arrange your cab.
         </p>
 
-        {reference && (
-          <div className="mb-6 rounded-xl bg-slate-100 p-4">
-            <p className="text-sm text-slate-500">Your booking reference</p>
-            <p className="mt-1 text-xl font-bold tracking-wide">
-              {reference}
-            </p>
-            <p className="mt-2 text-sm text-slate-500">
-              Keep this reference if you contact our support team.
-            </p>
-          </div>
-        )}
+        {/* Dynamic reference streams in inside Suspense */}
+        <Suspense fallback={<ReferenceSkeleton />}>
+          <BookingReference searchParams={searchParams} />
+        </Suspense>
 
         {phone && (
           <a

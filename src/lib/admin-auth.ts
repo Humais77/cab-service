@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
+import { db } from "@/prisma/db";
 
 const COOKIE_NAME = "cab_admin_session";
 
@@ -7,15 +8,18 @@ function getSecret() {
   const secret = process.env.ADMIN_SESSION_SECRET;
 
   if (!secret || secret.length < 32) {
-    throw new Error("ADMIN_SESSION_SECRET must be at least 32 characters.");
+    throw new Error(
+      "ADMIN_SESSION_SECRET must be at least 32 characters.",
+    );
   }
 
   return new TextEncoder().encode(secret);
 }
 
-export async function createAdminSession() {
+export async function createAdminSession(userId: number) {
   return new SignJWT({ role: "ADMIN" })
     .setProtectedHeader({ alg: "HS256" })
+    .setSubject(String(userId))
     .setIssuedAt()
     .setExpirationTime("8h")
     .sign(getSecret());
@@ -47,14 +51,28 @@ export async function clearAdminSession() {
 
 export async function isAdminAuthenticated() {
   try {
-    const cookieStore = await cookies();
-    const token = cookieStore.get(COOKIE_NAME)?.value;
+    const token = (await cookies()).get(COOKIE_NAME)?.value;
 
     if (!token) return false;
 
     const { payload } = await jwtVerify(token, getSecret());
 
-    return payload.role === "ADMIN";
+    if (payload.role !== "ADMIN" || !payload.sub) {
+      return false;
+    }
+
+    const users = await db.orm.public.User.all();
+
+    return users.some(
+      (user: {
+        id: number;
+        role: string;
+        active: boolean;
+      }) =>
+        String(user.id) === payload.sub &&
+        user.role === "ADMIN" &&
+        user.active,
+    );
   } catch {
     return false;
   }
@@ -63,7 +81,7 @@ export async function isAdminAuthenticated() {
 export async function requireAdmin() {
   if (!(await isAdminAuthenticated())) {
     return Response.json(
-      { error: "Unauthorized. Please log in as admin." },
+      { error: "Unauthorized." },
       { status: 401 },
     );
   }
