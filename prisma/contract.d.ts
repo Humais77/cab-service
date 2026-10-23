@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'02e6dda60d477d4c8760c9ea2161228948e5d1511f3c1884439043fcb32a2707'>;
+  StorageHashBase<'a550688396d1d0c13a04482e3c990c188708b4951e19bc6423048d177187f3e7'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -304,6 +304,17 @@ export namespace Models {
     vehicleName: FieldOutputTypes['public']['Booking']['vehicleName'];
     readonly [RelationKeys]?: never;
   };
+  export type public_ContactEnquiry = {
+    createdAt: FieldOutputTypes['public']['ContactEnquiry']['createdAt'];
+    email: FieldOutputTypes['public']['ContactEnquiry']['email'];
+    id: FieldOutputTypes['public']['ContactEnquiry']['id'];
+    message: FieldOutputTypes['public']['ContactEnquiry']['message'];
+    name: FieldOutputTypes['public']['ContactEnquiry']['name'];
+    phone: FieldOutputTypes['public']['ContactEnquiry']['phone'];
+    status: FieldOutputTypes['public']['ContactEnquiry']['status'];
+    updatedAt: FieldOutputTypes['public']['ContactEnquiry']['updatedAt'];
+    readonly [RelationKeys]?: never;
+  };
   export type public_Driver = {
     active: FieldOutputTypes['public']['Driver']['active'];
     createdAt: FieldOutputTypes['public']['Driver']['createdAt'];
@@ -344,6 +355,7 @@ export namespace Models {
 export declare const models: {
   public: {
     Booking: Models.public_Booking;
+    ContactEnquiry: Models.public_ContactEnquiry;
     Driver: Models.public_Driver;
     ServiceType: Models.public_ServiceType;
     User: Models.public_User;
@@ -590,6 +602,72 @@ type ContractBase = Omit<
               indexes: readonly [];
               foreignKeys: readonly [];
             };
+            readonly ContactEnquiry: {
+              columns: {
+                readonly createdAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly many: false;
+                };
+                readonly email: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly id: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'function';
+                    readonly expression: 'autoincrement()';
+                  };
+                  readonly many: false;
+                };
+                readonly message: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly name: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly phone: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly status: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'NEW'>;
+                  };
+                  readonly many: false;
+                };
+                readonly updatedAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: false;
+                  readonly default: { readonly kind: 'function'; readonly expression: 'now()' };
+                  readonly many: false;
+                };
+              };
+              primaryKey: { readonly columns: readonly ['id'] };
+              uniques: readonly [];
+              indexes: readonly [];
+              foreignKeys: readonly [];
+            };
             readonly Driver: {
               columns: {
                 readonly active: {
@@ -817,6 +895,10 @@ type ContractBase = Omit<
   readonly targetFamily: 'sql';
   readonly roots: {
     readonly Booking: { readonly namespace: 'public' & NamespaceId; readonly model: 'Booking' };
+    readonly ContactEnquiry: {
+      readonly namespace: 'public' & NamespaceId;
+      readonly model: 'ContactEnquiry';
+    };
     readonly Driver: { readonly namespace: 'public' & NamespaceId; readonly model: 'Driver' };
     readonly ServiceType: {
       readonly namespace: 'public' & NamespaceId;
@@ -1012,6 +1094,63 @@ type ContractBase = Omit<
                 readonly tripType: { readonly column: 'tripType' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
                 readonly vehicleName: { readonly column: 'vehicleName' };
+              };
+            };
+          };
+          readonly ContactEnquiry: {
+            readonly fields: {
+              readonly createdAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
+              readonly email: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly id: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly message: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly name: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly phone: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly status: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly updatedAt: {
+                readonly nullable: false;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
+            };
+            readonly relations: Record<string, never>;
+            readonly storage: {
+              readonly table: 'ContactEnquiry';
+              readonly namespaceId: 'public';
+              readonly fields: {
+                readonly createdAt: { readonly column: 'createdAt' };
+                readonly email: { readonly column: 'email' };
+                readonly id: { readonly column: 'id' };
+                readonly message: { readonly column: 'message' };
+                readonly name: { readonly column: 'name' };
+                readonly phone: { readonly column: 'phone' };
+                readonly status: { readonly column: 'status' };
+                readonly updatedAt: { readonly column: 'updatedAt' };
               };
             };
           };

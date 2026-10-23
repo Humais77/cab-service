@@ -30,6 +30,7 @@ import {
   ExternalLink,
   LoaderCircle,
   CreditCard,
+  MessageSquare,
 } from "lucide-react";
 
 type Status =
@@ -101,14 +102,24 @@ type Payment = {
   stripePaymentIntentId?: string | null;
   bookingStatus: string;
 };
-
+type ContactEnquiry = {
+  id: number;
+  name: string;
+  email: string;
+  phone: string;
+  message: string;
+  status: "NEW" | "READ" | "RESOLVED";
+  createdAt: string;
+  updatedAt: string;
+};
 type Tab =
   | "overview"
   | "bookings"
   | "payments"
   | "drivers"
   | "vehicles"
-  | "services";
+  | "services"
+  | "contact";
 
 const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "overview", label: "Overview", icon: LayoutDashboard },
@@ -117,6 +128,9 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "vehicles", label: "Vehicles", icon: CarFront },
   { id: "services", label: "Service types", icon: Settings2 },
   { id: "payments", label: "Payments", icon: CreditCard },
+  {
+    id: "contact", label: "Contact Enquiries", icon: MessageSquare,
+  }
 ];
 
 const statuses: Status[] = [
@@ -182,7 +196,7 @@ export default function AdminDashboardPage() {
   const [mobileMenu, setMobileMenu] = useState(false);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [payments, setPayments] = useState<Payment[]>([]);
-
+  const [contactEnquiries, setContactEnquiries] = useState<ContactEnquiry[]>([]);
   const loadData = useCallback(async (showSpinner = true) => {
     if (showSpinner) setLoading(true);
     setError("");
@@ -194,46 +208,45 @@ export default function AdminDashboardPage() {
         vehicleResponse,
         serviceResponse,
         paymentResponse,
+        contactResponse,
       ] = await Promise.all([
         fetch("/api/admin/bookings", { cache: "no-store" }),
         fetch("/api/admin/resources/drivers", { cache: "no-store" }),
         fetch("/api/admin/resources/vehicles", { cache: "no-store" }),
         fetch("/api/admin/resources/services", { cache: "no-store" }),
         fetch("/api/admin/payments", { cache: "no-store" }),
+        fetch("/api/admin/contact", { cache: "no-store" }),
       ]);
 
-      // A protected API returning 401 means the admin must log in.
-      if (
-        [
-          bookingResponse,
-          driverResponse,
-          vehicleResponse,
-          serviceResponse,
-          paymentResponse,
-        ].some((response) => response.status === 401)
-      ) {
-        window.location.replace("/");
+      const responses = [
+        bookingResponse,
+        driverResponse,
+        vehicleResponse,
+        serviceResponse,
+        paymentResponse,
+        contactResponse,
+      ];
+
+      if (responses.some((response) => response.status === 401)) {
+        window.location.replace("/admin/login");
         return;
       }
+
       const [
         bookingData,
         driverData,
         vehicleData,
         serviceData,
         paymentData,
-      ] = await Promise.all([
-        readJson(bookingResponse),
-        readJson(driverResponse),
-        readJson(vehicleResponse),
-        readJson(serviceResponse),
-        readJson(paymentResponse),
-      ]);
+        contactData,
+      ] = await Promise.all(responses.map(readJson));
 
       setBookings(bookingData.bookings ?? []);
       setDrivers(driverData.items ?? []);
       setVehicles(vehicleData.items ?? []);
       setServices(serviceData.items ?? []);
       setPayments(paymentData.payments ?? []);
+      setContactEnquiries(contactData.enquiries ?? []);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Unable to load dashboard.",
@@ -292,7 +305,7 @@ export default function AdminDashboardPage() {
         credentials: "same-origin",
       });
     } finally {
-      window.location.replace("/admin/login");
+      window.location.replace("/");
     }
   }
 
@@ -458,7 +471,7 @@ export default function AdminDashboardPage() {
       );
     }
   }
-
+  
   function openDriverWhatsApp(booking: Booking) {
     if (!booking.assignedDriverId) {
       setError("Assign a driver before preparing a WhatsApp message.");
@@ -534,6 +547,67 @@ export default function AdminDashboardPage() {
       setBusyId(null);
     }
   }
+  async function updateContactEnquiry(
+  enquiry: ContactEnquiry,
+  status: ContactEnquiry["status"],
+) {
+  setBusyId(enquiry.id);
+  setError("");
+  setNotice("");
+
+  try {
+    const response = await fetch(`/api/admin/contact/${enquiry.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status }),
+    });
+
+    await readJson(response);
+
+    setNotice(`Enquiry from ${enquiry.name} marked as ${status.toLowerCase()}.`);
+    await loadData(false);
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : "Unable to update enquiry.",
+    );
+  } finally {
+    setBusyId(null);
+  }
+}
+
+async function deleteContactEnquiry(enquiry: ContactEnquiry) {
+  if (
+    !window.confirm(
+      `Delete the contact enquiry from ${enquiry.name}? This cannot be undone.`,
+    )
+  ) {
+    return;
+  }
+
+  setBusyId(enquiry.id);
+  setError("");
+  setNotice("");
+
+  try {
+    const response = await fetch(`/api/admin/contact/${enquiry.id}`, {
+      method: "DELETE",
+    });
+
+    await readJson(response);
+
+    setContactEnquiries((current) =>
+      current.filter((item) => item.id !== enquiry.id),
+    );
+
+    setNotice(`Enquiry from ${enquiry.name} deleted.`);
+  } catch (err) {
+    setError(
+      err instanceof Error ? err.message : "Unable to delete enquiry.",
+    );
+  } finally {
+    setBusyId(null);
+  }
+}
 
 
   function renderBookings(limit?: number) {
@@ -850,176 +924,325 @@ export default function AdminDashboardPage() {
       </div>
     );
   }
-  
-function renderPayments() {
-  const formatAUD = (amountCents: number) =>
-    new Intl.NumberFormat("en-AU", {
-      style: "currency",
-      currency: "AUD",
-    }).format(amountCents / 100);
 
-  if (payments.length === 0) {
+  function renderPayments() {
+    const formatAUD = (amountCents: number) =>
+      new Intl.NumberFormat("en-AU", {
+        style: "currency",
+        currency: "AUD",
+      }).format(amountCents / 100);
+
+    if (payments.length === 0) {
+      return (
+        <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
+          <CreditCard
+            className="mx-auto mb-3 text-slate-400"
+            size={32}
+          />
+          <p className="font-semibold text-slate-800">
+            No payment records found
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Payments will appear here when bookings are created.
+          </p>
+        </div>
+      );
+    }
+
     return (
-      <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
-        <CreditCard
-          className="mx-auto mb-3 text-slate-400"
-          size={32}
-        />
-        <p className="font-semibold text-slate-800">
-          No payment records found
-        </p>
-        <p className="mt-1 text-sm text-slate-500">
-          Payments will appear here when bookings are created.
-        </p>
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold">Payment records</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            View booking payments and verify Stripe transactions directly.
+          </p>
+        </div>
+
+        {payments.map((payment) => {
+          const paid = payment.paymentStatus === "PAID";
+          const isStripe = payment.paymentMethod === "STRIPE";
+          const isBusy = busyId === payment.id;
+
+          return (
+            <article
+              key={payment.id}
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+            >
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <div>
+                  <p className="font-bold text-slate-900">
+                    {payment.reference}
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold text-slate-800">
+                    {payment.customerName}
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-500">
+                    {payment.customerEmail || "No email provided"}
+                    {" · "}
+                    {payment.customerPhone}
+                  </p>
+                </div>
+
+                <div className="sm:text-right">
+                  <p className="text-xl font-bold text-slate-900">
+                    {Number.isSafeInteger(payment.amountCents)
+                      ? formatAUD(payment.amountCents)
+                      : "Amount unavailable"}
+                  </p>
+
+                  <span
+                    className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${paid
+                        ? "bg-green-50 text-green-700"
+                        : "bg-amber-50 text-amber-700"
+                      }`}
+                  >
+                    {payment.paymentStatus.replaceAll("_", " ")}
+                  </span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Payment method
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">
+                    {isStripe ? "Stripe Checkout" : "Pay to driver"}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Booking status
+                  </p>
+                  <p className="mt-1 text-sm font-medium text-slate-800">
+                    {payment.bookingStatus.replaceAll("_", " ")}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Route
+                  </p>
+                  <p className="mt-1 break-words text-sm text-slate-800">
+                    {payment.pickup} → {payment.destination}
+                  </p>
+                </div>
+
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                    Submitted
+                  </p>
+                  <p className="mt-1 text-sm text-slate-800">
+                    {formatDateTime(payment.createdAt)}
+                  </p>
+                </div>
+
+                {payment.paidAt && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Paid at
+                    </p>
+                    <p className="mt-1 text-sm text-slate-800">
+                      {formatDateTime(payment.paidAt)}
+                    </p>
+                  </div>
+                )}
+
+                {payment.stripePaymentIntentId && (
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      Stripe payment ID
+                    </p>
+                    <p className="mt-1 break-all text-sm text-slate-800">
+                      {payment.stripePaymentIntentId}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
+                <p className="text-xs text-slate-500">
+                  {isStripe
+                    ? "Stripe handles payment confirmation automatically."
+                    : "Driver collection is tracked separately from Stripe."}
+                </p>
+
+                {isStripe && (
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() => void verifyPayment(payment)}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {isBusy ? (
+                      <LoaderCircle
+                        size={16}
+                        className="animate-spin"
+                      />
+                    ) : (
+                      <RefreshCw size={16} />
+                    )}
+                    {isBusy ? "Verifying..." : "Verify with Stripe"}
+                  </button>
+                )}
+              </div>
+            </article>
+          );
+        })}
       </div>
     );
   }
 
-  return (
-    <div className="space-y-4">
-      <div>
-        <h2 className="text-lg font-bold">Payment records</h2>
-        <p className="mt-1 text-sm text-slate-500">
-          View booking payments and verify Stripe transactions directly.
-        </p>
-      </div>
+  function renderContactEnquiries() {
+    const enquiryStatusClasses: Record<ContactEnquiry["status"], string> = {
+      NEW: "bg-amber-50 text-amber-700 ring-amber-200",
+      READ: "bg-blue-50 text-blue-700 ring-blue-200",
+      RESOLVED: "bg-green-50 text-green-700 ring-green-200",
+    };
 
-      {payments.map((payment) => {
-        const paid = payment.paymentStatus === "PAID";
-        const isStripe = payment.paymentMethod === "STRIPE";
-        const isBusy = busyId === payment.id;
+    if (contactEnquiries.length === 0) {
+      return (
+        <div className="rounded-2xl border border-dashed border-slate-300 p-10 text-center">
+          <MessageSquare
+            className="mx-auto mb-3 text-slate-400"
+            size={32}
+          />
+          <p className="font-semibold text-slate-800">
+            No contact enquiries yet
+          </p>
+          <p className="mt-1 text-sm text-slate-500">
+            Customer messages submitted through the contact form will appear here.
+          </p>
+        </div>
+      );
+    }
 
-        return (
-          <article
-            key={payment.id}
-            className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
-          >
-            <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
-              <div>
-                <p className="font-bold text-slate-900">
-                  {payment.reference}
-                </p>
-                <h3 className="mt-1 text-lg font-semibold text-slate-800">
-                  {payment.customerName}
-                </h3>
-                <p className="mt-1 text-sm text-slate-500">
-                  {payment.customerEmail || "No email provided"}
-                  {" · "}
-                  {payment.customerPhone}
+    return (
+      <section className="space-y-4">
+        <div>
+          <h2 className="text-lg font-bold">Contact enquiries</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            {contactEnquiries.filter((item) => item.status === "NEW").length} new
+            {" · "}
+            {contactEnquiries.length} total
+          </p>
+        </div>
+
+        {contactEnquiries.map((enquiry) => {
+          const isBusy = busyId === enquiry.id;
+
+          return (
+            <article
+              key={enquiry.id}
+              className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"
+            >
+              <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-start">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      {enquiry.name}
+                    </h3>
+
+                    <span
+                      className={`rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${enquiryStatusClasses[enquiry.status]
+                        }`}
+                    >
+                      {enquiry.status}
+                    </span>
+                  </div>
+
+                  <p className="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-600">
+                    <span>{enquiry.email}</span>
+                    <span className="text-slate-300">·</span>
+                    <a
+                      href={`tel:${enquiry.phone}`}
+                      className="inline-flex items-center gap-1 hover:text-blue-700"
+                    >
+                      <Phone size={14} />
+                      {enquiry.phone}
+                    </a>
+                  </p>
+                </div>
+
+                <p className="text-sm text-slate-500">
+                  Received {formatDateTime(enquiry.createdAt)}
                 </p>
               </div>
 
-              <div className="sm:text-right">
-                <p className="text-xl font-bold text-slate-900">
-                  {Number.isSafeInteger(payment.amountCents)
-                    ? formatAUD(payment.amountCents)
-                    : "Amount unavailable"}
+              <div className="mt-4 rounded-xl bg-slate-50 p-4">
+                <p className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                  <MessageSquare size={14} />
+                  Customer message
                 </p>
 
-                <span
-                  className={`mt-2 inline-flex rounded-full px-2.5 py-1 text-xs font-semibold ${
-                    paid
-                      ? "bg-green-50 text-green-700"
-                      : "bg-amber-50 text-amber-700"
-                  }`}
+                <p className="whitespace-pre-wrap break-words text-sm leading-6 text-slate-800">
+                  {enquiry.message}
+                </p>
+              </div>
+
+              <div className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-4">
+                <a
+                  href={`mailto:${enquiry.email}?subject=${encodeURIComponent(
+                    "Re: Your enquiry to Silver Cab Sydney",
+                  )}`}
+                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800"
                 >
-                  {payment.paymentStatus.replaceAll("_", " ")}
-                </span>
-              </div>
-            </div>
+                  <ExternalLink size={16} />
+                  Reply by email
+                </a>
 
-            <div className="mt-4 grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-2">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Payment method
-                </p>
-                <p className="mt-1 text-sm font-medium text-slate-800">
-                  {isStripe ? "Stripe Checkout" : "Pay to driver"}
-                </p>
-              </div>
+                <a
+                  href={`tel:${enquiry.phone}`}
+                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  <Phone size={16} />
+                  Call customer
+                </a>
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Booking status
-                </p>
-                <p className="mt-1 text-sm font-medium text-slate-800">
-                  {payment.bookingStatus.replaceAll("_", " ")}
-                </p>
-              </div>
+                {enquiry.status !== "READ" &&
+                  enquiry.status !== "RESOLVED" && (
+                    <button
+                      type="button"
+                      disabled={isBusy}
+                      onClick={() =>
+                        void updateContactEnquiry(enquiry, "READ")
+                      }
+                      className="rounded-xl border border-blue-200 px-4 py-2.5 text-sm font-semibold text-blue-700 hover:bg-blue-50 disabled:opacity-60"
+                    >
+                      Mark as read
+                    </button>
+                  )}
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Route
-                </p>
-                <p className="mt-1 break-words text-sm text-slate-800">
-                  {payment.pickup} → {payment.destination}
-                </p>
-              </div>
+                {enquiry.status !== "RESOLVED" && (
+                  <button
+                    type="button"
+                    disabled={isBusy}
+                    onClick={() =>
+                      void updateContactEnquiry(enquiry, "RESOLVED")
+                    }
+                    className="rounded-xl border border-green-200 px-4 py-2.5 text-sm font-semibold text-green-700 hover:bg-green-50 disabled:opacity-60"
+                  >
+                    Mark resolved
+                  </button>
+                )}
 
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                  Submitted
-                </p>
-                <p className="mt-1 text-sm text-slate-800">
-                  {formatDateTime(payment.createdAt)}
-                </p>
-              </div>
-
-              {payment.paidAt && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Paid at
-                  </p>
-                  <p className="mt-1 text-sm text-slate-800">
-                    {formatDateTime(payment.paidAt)}
-                  </p>
-                </div>
-              )}
-
-              {payment.stripePaymentIntentId && (
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
-                    Stripe payment ID
-                  </p>
-                  <p className="mt-1 break-all text-sm text-slate-800">
-                    {payment.stripePaymentIntentId}
-                  </p>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 pt-4">
-              <p className="text-xs text-slate-500">
-                {isStripe
-                  ? "Stripe handles payment confirmation automatically."
-                  : "Driver collection is tracked separately from Stripe."}
-              </p>
-
-              {isStripe && (
                 <button
                   type="button"
                   disabled={isBusy}
-                  onClick={() => void verifyPayment(payment)}
-                  className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60"
+                  onClick={() => void deleteContactEnquiry(enquiry)}
+                  className="ml-auto inline-flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 disabled:opacity-60"
                 >
-                  {isBusy ? (
-                    <LoaderCircle
-                      size={16}
-                      className="animate-spin"
-                    />
-                  ) : (
-                    <RefreshCw size={16} />
-                  )}
-                  {isBusy ? "Verifying..." : "Verify with Stripe"}
+                  <Trash2 size={16} />
+                  Delete
                 </button>
-              )}
-            </div>
-          </article>
-        );
-      })}
-    </div>
-  );
-}
+              </div>
+            </article>
+          );
+        })}
+      </section>
+    );
+  }
 
 
   const activeTab = tabs.find((item) => item.id === tab);
@@ -1275,6 +1498,7 @@ function renderPayments() {
                 </section>
               )}
               {tab === "payments" && renderPayments()}
+              {tab === "contact" && renderContactEnquiries()}
 
               {tab === "drivers" && renderResources("drivers", drivers)}
               {tab === "vehicles" && renderResources("vehicles", vehicles)}
