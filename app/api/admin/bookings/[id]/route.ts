@@ -54,11 +54,29 @@ export async function PATCH(request: Request, context: RouteContext) {
       : { ...data };
 
     const updated = await db.orm.public.Booking.where({ id: bookingId }).update(updateData);
+    const confirmsBooking = ["CONFIRMED", "ASSIGNED", "IN_PROGRESS", "COMPLETED"]
+      .includes(data.status ?? "");
+
+    if (
+      current.paymentMethod === "STRIPE" &&
+      current.paymentStatus !== "PAID" &&
+      (confirmsBooking || data.assignedDriverId !== undefined)
+    ) {
+      return NextResponse.json(
+        {
+          error: "This booking cannot be confirmed or assigned until Stripe payment is verified.",
+          paymentStatus: current.paymentStatus,
+        },
+        { status: 409 },
+      );
+    }
     return NextResponse.json({ success: true, booking: updated });
   } catch (error) {
     console.error("Update booking error:", error);
     return NextResponse.json({ error: "Unable to update booking." }, { status: 500 });
+
   }
+
 }
 
 export async function DELETE(_request: Request, context: RouteContext) {
