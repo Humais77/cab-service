@@ -2,6 +2,13 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
+  Map as MapIcon,
+  ChevronDown,
+  ChevronUp,
+  MapPin,
+  Navigation,
+} from "lucide-react";
+import {
   MapContainer,
   Marker,
   Polyline,
@@ -25,7 +32,9 @@ export type RouteSelection = {
   durationSeconds: number | null;
 };
 
-type Suggestion = Location & { id: string };
+type Suggestion = Location & {
+  id: string;
+};
 
 type RouteGeometry = {
   type: "LineString";
@@ -46,23 +55,37 @@ const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 
 const pickupIcon = L.divIcon({
   className: "",
-  html: '<div style="width:18px;height:18px;border:3px solid white;border-radius:50%;background:#16a34a;box-shadow:0 1px 5px #555"></div>',
+  html: `
+    <div style="
+      width:18px;
+      height:18px;
+      border:3px solid white;
+      border-radius:50%;
+      background:#16a34a;
+      box-shadow:0 1px 5px #555;
+    "></div>
+  `,
   iconSize: [18, 18],
   iconAnchor: [9, 9],
 });
 
 const destinationIcon = L.divIcon({
   className: "",
-  html: '<div style="width:18px;height:18px;border:3px solid white;border-radius:50%;background:#dc2626;box-shadow:0 1px 5px #555"></div>',
+  html: `
+    <div style="
+      width:18px;
+      height:18px;
+      border:3px solid white;
+      border-radius:50%;
+      background:#dc2626;
+      box-shadow:0 1px 5px #555;
+    "></div>
+  `,
   iconSize: [18, 18],
   iconAnchor: [9, 9],
 });
 
-function FitRoute({
-  points,
-}: {
-  points: [number, number][];
-}) {
+function FitRoute({ points }: { points: [number, number][] }) {
   const map = useMap();
 
   useEffect(() => {
@@ -70,7 +93,11 @@ function FitRoute({
       map.setView(points[0], 13);
     } else if (points.length > 1) {
       const bounds: LatLngBoundsExpression = points;
-      map.fitBounds(bounds, { padding: [32, 32], maxZoom: 14 });
+
+      map.fitBounds(bounds, {
+        padding: [32, 32],
+        maxZoom: 14,
+      });
     }
   }, [map, points]);
 
@@ -84,6 +111,7 @@ function formatDuration(seconds: number) {
 
   if (hours === 0) return `${minutes} min`;
   if (remainingMinutes === 0) return `${hours} hr`;
+
   return `${hours} hr ${remainingMinutes} min`;
 }
 
@@ -118,6 +146,7 @@ function LocationField({
     }
 
     const controller = new AbortController();
+
     const timer = window.setTimeout(async () => {
       setLoading(true);
       setError("");
@@ -127,22 +156,29 @@ function LocationField({
           `/api/locations?q=${encodeURIComponent(cleaned)}`,
           { signal: controller.signal }
         );
+
         const result = await response.json();
 
         if (!response.ok) {
           throw new Error(result.error || "Location search failed.");
         }
 
-        setSuggestions(Array.isArray(result.suggestions) ? result.suggestions : []);
+        setSuggestions(
+          Array.isArray(result.suggestions) ? result.suggestions : []
+        );
       } catch (searchError) {
         if (controller.signal.aborted) return;
+
         console.error("Location autocomplete error:", searchError);
+
         setSuggestions([]);
         setError("Could not search locations. Please try again.");
       } finally {
-        if (!controller.signal.aborted) setLoading(false);
+        if (!controller.signal.aborted) {
+          setLoading(false);
+        }
       }
-    }, 500);
+    }, 450);
 
     return () => {
       window.clearTimeout(timer);
@@ -151,41 +187,52 @@ function LocationField({
   }, [query, value?.address]);
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <label className="mb-2 block text-sm font-semibold text-slate-700">
         {label}
       </label>
-      <input
-        value={query}
-        onChange={(event) => {
-          const nextQuery = event.target.value;
-          setQuery(nextQuery);
-          setSuggestions([]);
-          setError("");
 
-          if (value && nextQuery !== value.address) {
-            onSelect(null);
-          }
-        }}
-        placeholder={placeholder}
-        autoComplete="off"
-        aria-label={label}
-        aria-autocomplete="list"
-        className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-sm text-slate-800 outline-none transition focus:border-green-600 focus:ring-2 focus:ring-green-100"
-      />
+      <div className="relative">
+        <MapPin
+          aria-hidden="true"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+        />
+
+        <input
+          value={query}
+          onChange={(event) => {
+            const nextQuery = event.target.value;
+
+            setQuery(nextQuery);
+            setSuggestions([]);
+            setError("");
+
+            if (value && nextQuery !== value.address) {
+              onSelect(null);
+            }
+          }}
+          placeholder={placeholder}
+          autoComplete="off"
+          aria-label={label}
+          aria-autocomplete="list"
+          className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-green-600 focus:ring-4 focus:ring-green-100"
+        />
+      </div>
 
       {loading && (
-        <p className="mt-1 text-xs text-slate-500">Searching locations…</p>
+        <p className="mt-1.5 text-xs text-slate-500">
+          Searching locations…
+        </p>
       )}
 
       {error && (
-        <p role="alert" className="mt-1 text-xs text-red-600">
+        <p role="alert" className="mt-1.5 text-xs text-red-600">
           {error}
         </p>
       )}
 
       {!loading && suggestions.length > 0 && (
-        <ul className="absolute z-[1000] mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-gray-200 bg-white shadow-xl">
+        <ul className="absolute left-0 right-0 top-full z-[1000] mt-1 max-h-64 overflow-y-auto rounded-xl border border-slate-200 bg-white py-1 shadow-xl">
           {suggestions.map((suggestion) => (
             <li key={suggestion.id}>
               <button
@@ -196,11 +243,12 @@ function LocationField({
                     longitude: suggestion.longitude,
                     latitude: suggestion.latitude,
                   });
+
                   setQuery(suggestion.address);
                   setSuggestions([]);
                   setError("");
                 }}
-                className="w-full border-b border-gray-100 px-4 py-3 text-left text-sm text-slate-700 last:border-0 hover:bg-green-50"
+                className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-0 hover:bg-green-50 focus:bg-green-50 focus:outline-none"
               >
                 {suggestion.address}
               </button>
@@ -214,7 +262,7 @@ function LocationField({
         !error &&
         suggestions.length === 0 &&
         query.trim() !== value?.address && (
-          <p className="mt-1 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs text-slate-500">
             No matching locations found in the configured service area.
           </p>
         )}
@@ -228,22 +276,26 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
   const [route, setRoute] = useState<RouteResponse | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState("");
+  const [showMap, setShowMap] = useState(false);
 
   useEffect(() => {
     if (!pickup || !destination) {
       setRoute(null);
       setRouteError("");
       setRouteLoading(false);
+
       onChange({
         pickup,
         destination,
         distanceMeters: null,
         durationSeconds: null,
       });
+
       return;
     }
 
     const controller = new AbortController();
+
     const timer = window.setTimeout(async () => {
       setRouteLoading(true);
       setRouteError("");
@@ -252,7 +304,9 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
       try {
         const response = await fetch("/api/route", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+          },
           body: JSON.stringify({
             pickup: {
               longitude: pickup.longitude,
@@ -273,7 +327,9 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         }
 
         const calculatedRoute = result as RouteResponse;
+
         setRoute(calculatedRoute);
+
         onChange({
           pickup,
           destination,
@@ -282,12 +338,15 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         });
       } catch (error) {
         if (controller.signal.aborted) return;
+
         console.error("Driving route request failed:", error);
+
         setRouteError(
           error instanceof Error
             ? error.message
             : "Could not calculate the driving route."
         );
+
         onChange({
           pickup,
           destination,
@@ -295,7 +354,9 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
           durationSeconds: null,
         });
       } finally {
-        if (!controller.signal.aborted) setRouteLoading(false);
+        if (!controller.signal.aborted) {
+          setRouteLoading(false);
+        }
       }
     }, 250);
 
@@ -313,114 +374,176 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
   const markerPositions = useMemo<[number, number][]>(() => {
     const points: [number, number][] = [];
-    if (pickup) points.push([pickup.latitude, pickup.longitude]);
-    if (destination) points.push([destination.latitude, destination.longitude]);
+
+    if (pickup) {
+      points.push([pickup.latitude, pickup.longitude]);
+    }
+
+    if (destination) {
+      points.push([destination.latitude, destination.longitude]);
+    }
+
     return points;
   }, [pickup, destination]);
 
+  const hasBothLocations = Boolean(pickup && destination);
+
   return (
     <div className="space-y-4">
+      {/* Main route fields */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <LocationField
           label="Pickup location"
-          placeholder="Enter pickup address or place"
+          placeholder="Where should we pick you up?"
           value={pickup}
           onSelect={(location) => {
             setPickup(location);
             setRoute(null);
+            setRouteError("");
           }}
         />
+
         <LocationField
           label="Destination"
-          placeholder="Enter destination address or place"
+          placeholder="Where are you going?"
           value={destination}
           onSelect={(location) => {
             setDestination(location);
             setRoute(null);
+            setRouteError("");
           }}
         />
       </div>
 
-      <div className="overflow-hidden rounded-xl border border-gray-200">
-        <MapContainer
-          center={DEFAULT_CENTER}
-          zoom={11}
-          scrollWheelZoom
-          className="h-[320px] w-full sm:h-[380px]"
-          style={{ height: "380px", width: "100%" }}
+      {/* Map toggle */}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
+            <Navigation className="h-3.5 w-3.5" />
+          </span>
+
+          <span>
+            {routeLoading
+              ? "Calculating your driving route…"
+              : route
+                ? "Your driving route is ready."
+                : hasBothLocations
+                  ? "Preparing your driving route…"
+                  : "Enter both locations to calculate your route."}
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowMap((current) => !current)}
+          aria-expanded={showMap}
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-green-300 hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-4 focus:ring-green-100"
         >
-          <TileLayer
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          />
+          <MapIcon className="h-4 w-4" />
 
-          {pickup && (
-            <Marker
-              position={[pickup.latitude, pickup.longitude]}
-              icon={pickupIcon}
-            >
-              <Popup>Pickup: {pickup.address}</Popup>
-            </Marker>
+          {showMap ? "Hide map" : "Open map"}
+
+          {showMap ? (
+            <ChevronUp className="h-4 w-4" />
+          ) : (
+            <ChevronDown className="h-4 w-4" />
           )}
-
-          {destination && (
-            <Marker
-              position={[destination.latitude, destination.longitude]}
-              icon={destinationIcon}
-            >
-              <Popup>Destination: {destination.address}</Popup>
-            </Marker>
-          )}
-
-          {routePositions.length > 1 && (
-            <Polyline
-              positions={routePositions}
-              pathOptions={{ color: "#16a34a", weight: 5, opacity: 0.85 }}
-            />
-          )}
-
-          <FitRoute points={routePositions.length ? routePositions : markerPositions} />
-        </MapContainer>
+        </button>
       </div>
 
-      {routeLoading && (
-        <p className="text-sm text-slate-600">
-          Calculating driving distance and estimated travel time…
-        </p>
+      {/* Map is mounted only when the user opens it */}
+      {showMap && (
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-1">
+          <MapContainer
+            center={DEFAULT_CENTER}
+            zoom={11}
+            scrollWheelZoom
+            className="h-[280px] w-full rounded-lg sm:h-[360px]"
+            style={{ height: "360px", width: "100%" }}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+
+            {pickup && (
+              <Marker
+                position={[pickup.latitude, pickup.longitude]}
+                icon={pickupIcon}
+              >
+                <Popup>Pickup: {pickup.address}</Popup>
+              </Marker>
+            )}
+
+            {destination && (
+              <Marker
+                position={[destination.latitude, destination.longitude]}
+                icon={destinationIcon}
+              >
+                <Popup>Destination: {destination.address}</Popup>
+              </Marker>
+            )}
+
+            {routePositions.length > 1 && (
+              <Polyline
+                positions={routePositions}
+                pathOptions={{
+                  color: "#16a34a",
+                  weight: 5,
+                  opacity: 0.85,
+                }}
+              />
+            )}
+
+            <FitRoute
+              points={
+                routePositions.length > 0
+                  ? routePositions
+                  : markerPositions
+              }
+            />
+          </MapContainer>
+
+          <p className="px-3 py-2 text-xs leading-5 text-slate-500">
+            Map data © OpenStreetMap contributors. Travel times are estimates
+            and do not include live traffic.
+          </p>
+        </div>
       )}
 
       {routeError && (
-        <p role="alert" className="rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700">
+        <p
+          role="alert"
+          className="rounded-lg border border-red-100 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+        >
           {routeError}
         </p>
       )}
 
+      {/* Route summary */}
       {route && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-green-100 bg-green-50 p-4">
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-xl border border-green-100 bg-green-50/70 p-3.5 sm:p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-green-800">
               Driving distance
             </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">
+
+            <p className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
               {(route.distanceMeters / 1000).toFixed(2)} km
             </p>
           </div>
-          <div className="rounded-xl border border-blue-100 bg-blue-50 p-4">
+
+          <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 sm:p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
-              Estimated driving time
+              Estimated time
             </p>
-            <p className="mt-1 text-2xl font-bold text-slate-900">
+
+            <p className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
               {formatDuration(route.durationSeconds)}
             </p>
           </div>
         </div>
       )}
-
-      <p className="text-xs leading-5 text-slate-500">
-        Map data © OpenStreetMap contributors. Search and route services are
-        community-hosted public services and may be rate-limited. Travel times
-        are estimates and do not include live traffic.
-      </p>
     </div>
   );
 }

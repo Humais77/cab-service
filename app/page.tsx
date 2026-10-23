@@ -15,6 +15,8 @@ import FAQSection from "@/components/home/FAQSection";
 import CTA from "@/components/home/CTA";
 import Footer from "@/components/home/Footer";
 
+import FloatingContactButtons from "@/components/FloatingContactButtons";
+
 export default function Home() {
   return (
     <main id="home">
@@ -32,6 +34,9 @@ export default function Home() {
       <FAQSection />
       <CTA />
       <Footer />
+
+      {/* Sticky WhatsApp and Phone Buttons */}
+      <FloatingContactButtons />
     </main>
   );
 }
