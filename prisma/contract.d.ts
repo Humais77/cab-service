@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'8390e0a3e8765b90af44cdba2a7bc5ea322098ad99e79b47f056f4fd0ad07b80'>;
+  StorageHashBase<'11e14c82825e5aae2cfe306a6c9e3e5540c48e0f7ecebca28cd1a491a93a4354'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -270,6 +270,7 @@ export type StorageColumnInputTypes = ColumnTypesFromStorage<
 
 export namespace Models {
   export type public_Booking = {
+    amountCents: FieldOutputTypes['public']['Booking']['amountCents'];
     assignedDriverId: FieldOutputTypes['public']['Booking']['assignedDriverId'];
     createdAt: FieldOutputTypes['public']['Booking']['createdAt'];
     customerEmail: FieldOutputTypes['public']['Booking']['customerEmail'];
@@ -283,7 +284,10 @@ export namespace Models {
     id: FieldOutputTypes['public']['Booking']['id'];
     journeyDate: FieldOutputTypes['public']['Booking']['journeyDate'];
     journeyTime: FieldOutputTypes['public']['Booking']['journeyTime'];
+    paidAt: FieldOutputTypes['public']['Booking']['paidAt'];
     passengerCount: FieldOutputTypes['public']['Booking']['passengerCount'];
+    paymentMethod: FieldOutputTypes['public']['Booking']['paymentMethod'];
+    paymentStatus: FieldOutputTypes['public']['Booking']['paymentStatus'];
     pickup: FieldOutputTypes['public']['Booking']['pickup'];
     pickupLat: FieldOutputTypes['public']['Booking']['pickupLat'];
     pickupLng: FieldOutputTypes['public']['Booking']['pickupLng'];
@@ -293,6 +297,8 @@ export namespace Models {
     serviceType: FieldOutputTypes['public']['Booking']['serviceType'];
     specialInstructions: FieldOutputTypes['public']['Booking']['specialInstructions'];
     status: FieldOutputTypes['public']['Booking']['status'];
+    stripeCheckoutSessionId: FieldOutputTypes['public']['Booking']['stripeCheckoutSessionId'];
+    stripePaymentIntentId: FieldOutputTypes['public']['Booking']['stripePaymentIntentId'];
     tripType: FieldOutputTypes['public']['Booking']['tripType'];
     updatedAt: FieldOutputTypes['public']['Booking']['updatedAt'];
     vehicleName: FieldOutputTypes['public']['Booking']['vehicleName'];
@@ -354,6 +360,12 @@ type ContractBase = Omit<
           readonly table: {
             readonly Booking: {
               columns: {
+                readonly amountCents: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly assignedDriverId: {
                   readonly dataType: 'pg/int4';
                   readonly codecId: 'pg/int4@1';
@@ -437,10 +449,36 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly many: false;
                 };
+                readonly paidAt: {
+                  readonly dataType: 'pg/timestamptz';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly passengerCount: {
                   readonly dataType: 'pg/int4';
                   readonly codecId: 'pg/int4@1';
                   readonly nullable: false;
+                  readonly many: false;
+                };
+                readonly paymentMethod: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PAY_DRIVER'>;
+                  };
+                  readonly many: false;
+                };
+                readonly paymentStatus: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/text@1', 'PENDING'>;
+                  };
                   readonly many: false;
                 };
                 readonly pickup: {
@@ -501,6 +539,18 @@ type ContractBase = Omit<
                   };
                   readonly many: false;
                 };
+                readonly stripeCheckoutSessionId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
+                readonly stripePaymentIntentId: {
+                  readonly dataType: 'pg/text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                  readonly many: false;
+                };
                 readonly tripType: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
@@ -522,7 +572,10 @@ type ContractBase = Omit<
                 };
               };
               primaryKey: { readonly columns: readonly ['id'] };
-              uniques: readonly [{ readonly columns: readonly ['reference'] }];
+              uniques: readonly [
+                { readonly columns: readonly ['reference'] },
+                { readonly columns: readonly ['stripeCheckoutSessionId'] },
+              ];
               indexes: readonly [];
               foreignKeys: readonly [];
             };
@@ -702,6 +755,10 @@ type ContractBase = Omit<
         readonly models: {
           readonly Booking: {
             readonly fields: {
+              readonly amountCents: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly assignedDriverId: {
                 readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
@@ -760,9 +817,24 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly paidAt: {
+                readonly nullable: true;
+                readonly type: {
+                  readonly kind: 'scalar';
+                  readonly codecId: 'pg/timestamptz-date@1';
+                };
+              };
               readonly passengerCount: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly paymentMethod: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly paymentStatus: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly pickup: {
                 readonly nullable: false;
@@ -803,6 +875,14 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly stripeCheckoutSessionId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly stripePaymentIntentId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
               readonly tripType: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -824,6 +904,7 @@ type ContractBase = Omit<
               readonly table: 'Booking';
               readonly namespaceId: 'public';
               readonly fields: {
+                readonly amountCents: { readonly column: 'amountCents' };
                 readonly assignedDriverId: { readonly column: 'assignedDriverId' };
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly customerEmail: { readonly column: 'customerEmail' };
@@ -837,7 +918,10 @@ type ContractBase = Omit<
                 readonly id: { readonly column: 'id' };
                 readonly journeyDate: { readonly column: 'journeyDate' };
                 readonly journeyTime: { readonly column: 'journeyTime' };
+                readonly paidAt: { readonly column: 'paidAt' };
                 readonly passengerCount: { readonly column: 'passengerCount' };
+                readonly paymentMethod: { readonly column: 'paymentMethod' };
+                readonly paymentStatus: { readonly column: 'paymentStatus' };
                 readonly pickup: { readonly column: 'pickup' };
                 readonly pickupLat: { readonly column: 'pickupLat' };
                 readonly pickupLng: { readonly column: 'pickupLng' };
@@ -847,6 +931,8 @@ type ContractBase = Omit<
                 readonly serviceType: { readonly column: 'serviceType' };
                 readonly specialInstructions: { readonly column: 'specialInstructions' };
                 readonly status: { readonly column: 'status' };
+                readonly stripeCheckoutSessionId: { readonly column: 'stripeCheckoutSessionId' };
+                readonly stripePaymentIntentId: { readonly column: 'stripePaymentIntentId' };
                 readonly tripType: { readonly column: 'tripType' };
                 readonly updatedAt: { readonly column: 'updatedAt' };
                 readonly vehicleName: { readonly column: 'vehicleName' };

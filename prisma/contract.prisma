@@ -1,56 +1,64 @@
 // use prisma-8
 
 model Booking {
-  id                 Int     @id @default(autoincrement())
-  reference          String  @unique
-  customerName       String
-  customerEmail      String?
-  customerPhone      String
-  pickup             String
-  destination        String
-  tripType           String
-   journeyDate  TimestamptzJsDate
-  journeyTime        String
-  returnDate   TimestamptzJsDate?
-  returnTime         String?
-  vehicleName        String
-  passengerCount     Int
-  serviceType        String
-  specialInstructions String?
-  status             String  @default("PENDING")
-  assignedDriverId   Int?
-  pickupLat       Float?
-pickupLng       Float?
-destinationLat   Float?
-destinationLng   Float?
+  id                      Int                @id @default(autoincrement())
+  reference               String             @unique
+  customerName            String
+  customerEmail           String?
+  customerPhone           String
+  pickup                  String
+  destination             String
+  tripType                String
+  journeyDate             TimestamptzJsDate
+  journeyTime             String
+  returnDate              TimestamptzJsDate?
+  returnTime              String?
+  vehicleName             String
+  passengerCount          Int
+  serviceType             String
+  specialInstructions     String?
+  status                  String             @default("PENDING")
+  assignedDriverId        Int?
+  pickupLat               Float?
+  pickupLng               Float?
+  destinationLat          Float?
+  destinationLng          Float?
+  distanceMeters          Float?
+  durationSeconds         Float?
 
-distanceMeters  Float?
-durationSeconds Float?
-   createdAt    TimestamptzJsDate @default(now())
-  updatedAt    TimestamptzJsDate @default(now())
+  // Payment values: amountCents is AUD cents (A$25.00 = 2500).
+  paymentMethod           String             @default("PAY_DRIVER")
+  paymentStatus           String             @default("PENDING")
+  amountCents             Int?
+  stripeCheckoutSessionId String?            @unique
+  stripePaymentIntentId   String?
+  paidAt                  TimestamptzJsDate?
+
+  createdAt               TimestamptzJsDate  @default(now())
+  updatedAt               TimestamptzJsDate  @default(now())
 }
 
 model Vehicle {
-  id          Int     @id @default(autoincrement())
+  id          Int      @id @default(autoincrement())
   name        String
   description String?
-  capacity    Int     @default(4)
-  active      Boolean @default(true)
+  capacity    Int      @default(4)
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 }
 
 model Driver {
-  id        Int     @id @default(autoincrement())
+  id        Int      @id @default(autoincrement())
   name      String
   phone     String
-  active    Boolean @default(true)
+  active    Boolean  @default(true)
   createdAt DateTime @default(now())
 }
 
 model ServiceType {
-  id          Int     @id @default(autoincrement())
-  name        String  @unique
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
   description String?
-  active      Boolean @default(true)
+  active      Boolean  @default(true)
   createdAt   DateTime @default(now())
 }

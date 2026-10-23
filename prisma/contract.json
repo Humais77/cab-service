@@ -27,6 +27,13 @@
         "models": {
           "Booking": {
             "fields": {
+              "amountCents": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "assignedDriverId": {
                 "nullable": true,
                 "type": {
@@ -118,10 +125,31 @@
                   "kind": "scalar"
                 }
               },
+              "paidAt": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "kind": "scalar"
+                }
+              },
               "passengerCount": {
                 "nullable": false,
                 "type": {
                   "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
+              "paymentMethod": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "paymentStatus": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
                   "kind": "scalar"
                 }
               },
@@ -188,6 +216,20 @@
                   "kind": "scalar"
                 }
               },
+              "stripeCheckoutSessionId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
+              "stripePaymentIntentId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                }
+              },
               "tripType": {
                 "nullable": false,
                 "type": {
@@ -213,6 +255,9 @@
             "relations": {},
             "storage": {
               "fields": {
+                "amountCents": {
+                  "column": "amountCents"
+                },
                 "assignedDriverId": {
                   "column": "assignedDriverId"
                 },
@@ -252,8 +297,17 @@
                 "journeyTime": {
                   "column": "journeyTime"
                 },
+                "paidAt": {
+                  "column": "paidAt"
+                },
                 "passengerCount": {
                   "column": "passengerCount"
+                },
+                "paymentMethod": {
+                  "column": "paymentMethod"
+                },
+                "paymentStatus": {
+                  "column": "paymentStatus"
                 },
                 "pickup": {
                   "column": "pickup"
@@ -281,6 +335,12 @@
                 },
                 "status": {
                   "column": "status"
+                },
+                "stripeCheckoutSessionId": {
+                  "column": "stripeCheckoutSessionId"
+                },
+                "stripePaymentIntentId": {
+                  "column": "stripePaymentIntentId"
                 },
                 "tripType": {
                   "column": "tripType"
@@ -500,6 +560,11 @@
           "table": {
             "Booking": {
               "columns": {
+                "amountCents": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "nullable": true
+                },
                 "assignedDriverId": {
                   "codecId": "pg/int4@1",
                   "dataType": "pg/int4",
@@ -573,9 +638,32 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
+                "paidAt": {
+                  "codecId": "pg/timestamptz-date@1",
+                  "dataType": "pg/timestamptz",
+                  "nullable": true
+                },
                 "passengerCount": {
                   "codecId": "pg/int4@1",
                   "dataType": "pg/int4",
+                  "nullable": false
+                },
+                "paymentMethod": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PAY_DRIVER"
+                  },
+                  "nullable": false
+                },
+                "paymentStatus": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "default": {
+                    "kind": "literal",
+                    "value": "PENDING"
+                  },
                   "nullable": false
                 },
                 "pickup": {
@@ -627,6 +715,16 @@
                   },
                   "nullable": false
                 },
+                "stripeCheckoutSessionId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
+                "stripePaymentIntentId": {
+                  "codecId": "pg/text@1",
+                  "dataType": "pg/text",
+                  "nullable": true
+                },
                 "tripType": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -658,6 +756,11 @@
                 {
                   "columns": [
                     "reference"
+                  ]
+                },
+                {
+                  "columns": [
+                    "stripeCheckoutSessionId"
                   ]
                 }
               ]
@@ -830,7 +933,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "8390e0a3e8765b90af44cdba2a7bc5ea322098ad99e79b47f056f4fd0ad07b80"
+    "storageHash": "11e14c82825e5aae2cfe306a6c9e3e5540c48e0f7ecebca28cd1a491a93a4354"
   },
   "capabilities": {
     "postgres": {
