@@ -22,7 +22,7 @@ const services = [
   },
   {
     icon: Users,
-    title: "Maxi Silver Cap Sydney",
+    title: "Maxi Silver Cab Sydney",
     text: "Extra room for groups, luggage, family trips and comfortable journeys together.",
     image: "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=900&q=85",
   },

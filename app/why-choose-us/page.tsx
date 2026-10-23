@@ -29,7 +29,7 @@ export default function WhyChooseUsPage() {
             <span>Why choose us</span>
           </div>
           <span className="inline-block text-xs font-[650] uppercase leading-[1.5] tracking-[1.5px] text-site-muted">
-            THE Silver Cap Sydney DIFFERENCE
+            THE Silver Cab Sydney DIFFERENCE
           </span>
           <h1 className="mb-[18px] mt-3.5 max-w-[620px] font-serif text-[clamp(43px,5.1vw,68px)] font-normal leading-[1.05] tracking-[-1.8px] max-[560px]:text-[clamp(39px,11vw,52px)] max-[560px]:tracking-[-1px]">
             Good journeys start with feeling taken care of.

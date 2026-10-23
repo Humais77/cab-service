@@ -6,43 +6,43 @@ import { ChevronLeft, ChevronRight, ArrowUpRight } from "lucide-react";
 const services = [
   {
     category: "Airport transfers",
-    title: "Smooth landings, every time.",
+    title: "Sydney Airport, sorted.",
     description:
-      "Delayed flight? Chauffeurs track arrivals and adjust accordingly. Plus, you have 1 hour of complimentary wait time just in case.",
+      "Pre-book a cab to or from Sydney Airport (SYD). Flight tracking and meet-and-greet available on request.",
     image:
       "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=90",
     alt: "Airport and air travel",
-    link: "#booking",
+    link: "/services/airport-transfers",
   },
   {
-    category: "Hourly and full day hire",
-    title: "Seize the day.",
+    category: "City & suburbs",
+    title: "Anywhere in Sydney.",
     description:
-      "Reserve a dedicated chauffeur from 2 to 24 hours. They'll be on standby as long as you need them.",
+      "Point-to-point cabs across the CBD, Eastern Suburbs, North Shore, Inner West, Sutherland Shire and beyond.",
     image:
-      "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1200&q=90",
-    alt: "Comfortable car ready for your journey",
-    link: "#booking",
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=90",
+    alt: "Open road across Sydney",
+    link: "/services/city-to-city",
   },
   {
     category: "Business travel",
-    title: "Make every meeting count.",
+    title: "On time, every time.",
     description:
-      "Travel between meetings in comfort with dependable transportation for your business schedule.",
+      "Reliable transfers for meetings, conferences and client pickups — book ahead or request an on-demand cab.",
     image:
       "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=90",
     alt: "Modern professional workspace",
-    link: "#booking",
+    link: "/services/corporate-travel",
   },
   {
-    category: "Family and group travel",
+    category: "Group & family travel",
     title: "Room for everyone.",
     description:
-      "Enjoy convenient journeys with family and friends. Choose a suitable vehicle for your passengers and luggage.",
+      "Sedans, SUVs and minivans for families, groups and luggage-heavy trips — all driven by licensed local drivers.",
     image:
       "https://images.unsplash.com/photo-1549317661-bd32c8ce0db2?auto=format&fit=crop&w=1200&q=90",
     alt: "Vehicle for comfortable group travel",
-    link: "#booking",
+    link: "/services",
   },
 ];
 
@@ -68,23 +68,18 @@ export default function ServicesShowcase() {
       id="journey-services"
     >
       <div className="mx-auto w-full max-w-[1060px] max-[900px]:max-w-[720px] max-[600px]:max-w-[480px]">
-        {/* Section heading */}
         <header className="mx-auto mb-16 text-center max-[900px]:mb-[42px] max-[600px]:mb-[30px]">
           <h2 className="m-0 font-serif text-[clamp(38px,4vw,48px)] font-normal leading-[1.2] tracking-[-1px] text-[#777571] max-[600px]:text-[clamp(34px,8vw,42px)] max-[600px]:tracking-[-0.6px] max-[360px]:text-[32px]">
             Arrive at your best.
           </h2>
           <p className="mt-2.5 mb-0 text-[15px] font-normal leading-[1.6] text-[#777571] max-[600px]:mx-auto max-[600px]:mt-2.5 max-[600px]:max-w-[310px] max-[600px]:text-base">
-            Effortless journeys, tailored to you.
+            Effortless Sydney journeys, tailored to you.
           </p>
         </header>
 
-        {/* Service cards */}
         <div className="grid grid-cols-2 items-start gap-[26px] max-[900px]:gap-[22px] max-[600px]:grid-cols-1 max-[600px]:gap-[34px]">
           {visibleServices.map((service) => (
-            <article
-              className="flex min-w-0 flex-col"
-              key={service.category}
-            >
+            <article className="flex min-w-0 flex-col" key={service.category}>
               <a
                 href={service.link}
                 aria-label={`Learn more about ${service.category}`}
@@ -123,7 +118,6 @@ export default function ServicesShowcase() {
           ))}
         </div>
 
-        {/* Carousel controls */}
         <div className="mx-auto mt-[30px] flex min-h-12 w-fit items-center justify-center gap-3 rounded-[28px] border border-[#e9e4db] bg-white/65 px-[9px] py-[5px] shadow-[0_2px_9px_rgba(0,0,0,0.07)] max-[600px]:mt-[30px] max-[600px]:gap-3.5 max-[600px]:min-h-[52px] max-[600px]:px-2.5 max-[600px]:py-1.5">
           <button
             type="button"

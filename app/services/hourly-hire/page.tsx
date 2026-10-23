@@ -2,24 +2,35 @@ import ServiceLandingPage from "@/components/ServiceLandingPage";
 import type { ServiceLandingData } from "@/components/ServiceLandingPage";
 
 const data: ServiceLandingData = {
-  eyebrow: "FLEXIBLE CHAUFFEUR HIRE",
-  title: "Your day, your schedule.",
-  intro: "When your day involves several destinations, hourly or full-day hire can make the journey easier to coordinate. Share your itinerary and tell us what kind of day you are planning.",
-  image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1600&q=90",
+  eyebrow: "ON-DEMAND CAB BOOKINGS",
+  title: "Need a cab now?",
+  intro:
+    "Book a cab for immediate pickup anywhere in Sydney. Our dispatch will assign the nearest available driver — no waiting on hold.",
+  image:
+    "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1600&q=90",
   imageAlt: "Comfortable vehicle interior",
   benefits: [
-    "Useful for appointments and multiple destinations",
-    "A flexible option for shopping, events and sightseeing",
-    "Plan transport around your schedule",
-    "Tell us your expected duration when enquiring",
+    "Fast pickup — nearest available driver assigned",
+    "Fixed price quoted before you confirm",
+    "Available across Sydney, 24 hours a day",
+    "Pay by card in the cab or online at booking",
   ],
   sections: [
-    { title: "One day, several stops", text: "Arrange your transport for a day that takes you to meetings, appointments or different places around town." },
-    { title: "Keep plans together", text: "Share your expected stops and timing in advance so your transport request is clear." },
-    { title: "Personal or professional", text: "Hourly hire can suit a business itinerary, a special event or a day spent exploring." },
+    {
+      title: "Book in under a minute",
+      text: "Enter your pickup and destination, choose your vehicle, and confirm — dispatch handles the rest.",
+    },
+    {
+      title: "Track your driver",
+      text: "Receive your driver's details and live ETA once the booking is confirmed.",
+    },
+    {
+      title: "Fixed fares, no surprises",
+      text: "The fare you see at checkout is the fare you pay — no surge pricing on pre-booked trips.",
+    },
   ],
 };
 
-export default function HourlyHirePage() {
+export default function OnDemandPage() {
   return <ServiceLandingPage data={data} />;
 }

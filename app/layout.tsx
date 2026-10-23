@@ -9,9 +9,9 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Silver Cap Sydney | Premium Taxi & Transfers",
+  title: "Silver Cab Sydney | Premium Taxi & Transfers",
   description:
-    "Book reliable airport transfers, family taxis, corporate travel and comfortable rides with Silver Cap Sydney.",
+    "Book reliable airport transfers, family taxis, corporate travel and comfortable rides with Silver Cab Sydney.",
 };
 
 export default function RootLayout({

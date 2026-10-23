@@ -14,7 +14,7 @@ export default function WhyUs() {
       <div className="container-cab">
         <div className="mx-auto mb-[42px] max-w-[630px] text-center">
           <SectionHeading
-            eyebrow="THE Silver Cap Sydney DIFFERENCE"
+            eyebrow="THE Silver Cab Sydney DIFFERENCE"
             title="Why Travel With Us?"
             text="The details matter. We focus on the little things that make every ride better."
           />

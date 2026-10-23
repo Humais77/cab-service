@@ -49,7 +49,7 @@ export default function AdminLoginPage() {
         </div>
 
         <p className="text-sm font-semibold uppercase tracking-widest text-blue-700">
-          Silver Cap Sydney
+          Silver Cab Sydney
         </p>
 
         <h1 className="mt-2 text-3xl font-bold text-slate-900">

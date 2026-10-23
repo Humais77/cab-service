@@ -786,7 +786,7 @@ export default function AdminDashboardPage() {
             <CarFront size={22} />
           </div>
           <div>
-            <p className="font-bold">Silver Cap Sydney</p>
+            <p className="font-bold">Silver Cab Sydney</p>
             <p className="text-xs text-slate-500">Administration</p>
           </div>
         </div>
@@ -829,7 +829,7 @@ export default function AdminDashboardPage() {
         <div className="fixed inset-0 z-40 bg-slate-950/40 lg:hidden">
           <div className="flex h-full w-72 max-w-[85vw] flex-col bg-white shadow-xl">
             <div className="flex items-center justify-between border-b p-4">
-              <span className="font-bold">Silver Cap Sydney Admin</span>
+              <span className="font-bold">Silver Cab Sydney Admin</span>
               <button type="button" onClick={() => setMobileMenu(false)} aria-label="Close menu">
                 <X size={22} />
               </button>
@@ -879,7 +879,7 @@ export default function AdminDashboardPage() {
                 {activeTab?.label ?? "Dashboard"}
               </h1>
               <p className="hidden text-sm text-slate-500 sm:block">
-                Manage your Silver Cap Sydney operations
+                Manage your Silver Cab Sydney operations
               </p>
             </div>
           </div>
@@ -930,7 +930,7 @@ export default function AdminDashboardPage() {
                 <>
                   <div className="rounded-2xl bg-slate-900 p-6 text-white sm:p-8">
                     <p className="text-sm font-medium text-slate-300">
-                      Silver Cap Sydney Operations
+                      Silver Cab Sydney Operations
                     </p>
                     <h2 className="mt-2 text-2xl font-bold sm:text-3xl">
                       Welcome to your admin panel
@@ -1038,7 +1038,7 @@ export default function AdminDashboardPage() {
           )}
 
           <footer className="border-t border-slate-200 pt-5 text-xs text-slate-500">
-            Silver Cap Sydney Admin Panel · Keep customer and driver information confidential.
+            Silver Cab Sydney Admin Panel · Keep customer and driver information confidential.
           </footer>
         </main>
       </div>

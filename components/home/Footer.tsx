@@ -8,7 +8,7 @@ function Brand({ light = false }: { light?: boolean }) {
       </span>
       <span className="flex flex-col leading-[1.4]">
         <strong className={`text-[20px] font-[750] tracking-[-0.7px] max-[1080px]:text-lg max-[780px]:text-[18px] ${light ? "text-white" : "text-ink"}`}>
-          Silver Cap Sydney
+          Silver Cab Sydney
         </strong>
         <small className={`mt-[3px] text-[8px] font-bold tracking-[1.5px] max-[780px]:text-[10px] ${light ? "text-[#a3adbd]" : "text-[#818795]"}`}>
           YOUR JOURNEY, OUR PRIORITY
@@ -75,7 +75,7 @@ export default function Footer() {
       </div>
 
       <div className="container-cab flex flex-col items-start justify-between gap-4 border-t border-white/10 py-5 sm:flex-row sm:flex-wrap sm:items-center">
-        <p className="m-0 text-[11px] text-[#919cad] max-[480px]:text-[12px]">© 2026 Silver Cap Sydney. All rights reserved.</p>
+        <p className="m-0 text-[11px] text-[#919cad] max-[480px]:text-[12px]">© 2026 Silver Cab Sydney. All rights reserved.</p>
         <div className="flex gap-[22px]">
           <a href="#contact" className="text-[11px] text-[#919cad] hover:text-accent-light max-[480px]:text-[12px]">Privacy Policy</a>
           <a href="#contact" className="text-[11px] text-[#919cad] hover:text-accent-light max-[480px]:text-[12px]">Terms &amp; Conditions</a>

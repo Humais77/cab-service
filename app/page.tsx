@@ -1,7 +1,7 @@
 "use client";
 
 import TransparentHeader from "@/components/TransparentHeader";
-import ChauffeurHero from "@/components/ChauffeurHero";
+import Hero from "@/components/Hero";
 import BookingBar from "@/components/BookingBar";
 import ServicesShowcase from "@/components/ServicesShowcase";
 
@@ -19,7 +19,7 @@ export default function Home() {
   return (
     <main id="home">
       <TransparentHeader />
-      <ChauffeurHero />
+      <Hero />
       <BookingBar />
       <ServicesShowcase />
 

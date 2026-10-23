@@ -12,7 +12,7 @@ export default function SiteFooter() {
             </span>
             <span className="flex flex-col gap-[3px]">
               <strong className="text-[21px] font-[550] leading-[1.1] tracking-[-0.6px] max-[560px]:text-[19px]">
-                Silver Cap Sydney
+                Silver Cab Sydney
               </strong>
               <small className="text-[8px] tracking-[1.25px] opacity-75 max-[560px]:text-[7px] max-[560px]:tracking-[1px]">
                 YOUR JOURNEY, OUR PRIORITY
@@ -79,7 +79,7 @@ export default function SiteFooter() {
       </div>
 
       <div className="mx-auto flex max-w-[1320px] justify-between gap-5 border-t border-white/[0.17] py-[18px] pb-[22px] text-xs text-[#c4c2bc] max-[560px]:flex-col max-[560px]:gap-2">
-        <span>© 2026 Silver Cap Sydney. All rights reserved.</span>
+        <span>© 2026 Silver Cab Sydney. All rights reserved.</span>
         <span>Comfortable journeys, thoughtfully arranged.</span>
       </div>
     </footer>

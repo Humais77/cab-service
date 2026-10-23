@@ -52,13 +52,13 @@ export default function AboutSection() {
 
         <div className="max-w-[650px]">
           <SectionHeading
-            eyebrow="WELCOME TO Silver Cap Sydney"
+            eyebrow="WELCOME TO Silver Cab Sydney"
             title="A Better Way to Get Where You're Going"
             text="We believe every journey should feel effortless. From the moment you book to the moment you arrive, our focus is on comfort, convenience and dependable service."
           />
           <p className="mt-5 text-[14px] leading-[1.9] text-muted max-[480px]:text-[15px]">
             Whether you need an airport transfer, a family ride, a group
-            vehicle or professional business transport, Silver Cap Sydney makes
+            vehicle or professional business transport, Silver Cab Sydney makes
             planning your journey straightforward.
           </p>
           <div className="my-6 grid grid-cols-2 gap-[15px] max-[480px]:grid-cols-1 max-[480px]:gap-3.5">

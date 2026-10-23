@@ -8,32 +8,40 @@ const services = [
   {
     category: "LONG-DISTANCE TRAVEL",
     title: "City-to-city rides",
-    description: "Travel between cities with the convenience of a private, door-to-door ride arranged around your schedule.",
-    image: "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85",
+    description:
+      "Travel between Sydney and nearby cities with the convenience of a private, door-to-door cab arranged around your schedule.",
+    image:
+      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1200&q=85",
     alt: "Open road stretching into the distance",
     href: "/services/city-to-city",
   },
   {
     category: "AIRPORT TRANSFERS",
     title: "Smooth landings, every time.",
-    description: "Make airport journeys simpler with a planned pickup and a comfortable ride to your next destination.",
-    image: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=85",
+    description:
+      "Pre-book a cab to or from Sydney Airport (SYD) with flight tracking and meet-and-greet on request.",
+    image:
+      "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1200&q=85",
     alt: "Passenger airplane travelling through the sky",
     href: "/services/airport-transfers",
   },
   {
-    category: "FLEXIBLE CHAUFFEUR HIRE",
-    title: "Your day, your schedule.",
-    description: "Arrange a driver for several appointments, shopping, events or a day with multiple stops.",
-    image: "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1200&q=85",
+    category: "ON-DEMAND BOOKINGS",
+    title: "Need a cab now?",
+    description:
+      "Book a cab for immediate pickup anywhere in Sydney. Dispatch assigns the nearest available driver.",
+    image:
+      "https://images.unsplash.com/photo-1449965408869-eaa3f722e40d?auto=format&fit=crop&w=1200&q=85",
     alt: "Comfortable car interior",
-    href: "/services/hourly-hire",
+    href: "/services/on-demand",
   },
   {
     category: "BUSINESS TRAVEL",
     title: "Arrive ready for business.",
-    description: "A considered transport option for meetings, corporate visits, conferences and client travel.",
-    image: "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=85",
+    description:
+      "A reliable transport option for meetings, corporate visits, conferences and client travel across Sydney.",
+    image:
+      "https://images.unsplash.com/photo-1497366754035-f200968a6e72?auto=format&fit=crop&w=1200&q=85",
     alt: "Professional modern office",
     href: "/services/corporate-travel",
   },
@@ -54,15 +62,15 @@ export default function ServicesPage() {
           OUR SERVICES
         </span>
         <h1 className="mb-[18px] mt-3.5 font-serif text-[clamp(44px,6vw,76px)] font-normal leading-[1.05] tracking-[-1.8px] max-[560px]:text-[clamp(39px,11vw,52px)] max-[560px]:tracking-[-1px]">
-          Every journey,
+          Every Sydney journey,
           <br />
           considered.
         </h1>
         <p className="mx-auto mb-[25px] mt-0 max-w-[650px] text-lg leading-[1.75] text-[#62615e] max-[560px]:text-[17px]">
-          From airport pickups to longer journeys between cities, find a ride that fits your plans.
+          From airport pickups to cross-city trips, find a cab that fits your plans.
         </p>
         <Link className={buttonBlue} href="/#booking">
-          Plan your journey <ArrowRight size={18} />
+          Book a cab <ArrowRight size={18} />
         </Link>
       </section>
 

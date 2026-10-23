@@ -38,14 +38,14 @@ export default function TransparentHeader() {
           className="inline-flex flex-shrink-0 items-center gap-2.5 text-inherit no-underline"
           href="/"
           onClick={closeMenus}
-          aria-label="Silver Cap Sydney home"
+          aria-label="Silver Cab Sydney home"
         >
           <span className="grid h-[39px] w-[39px] place-items-center rounded-full border border-current font-serif text-2xl max-[560px]:h-[35px] max-[560px]:w-[35px] max-[560px]:text-[21px]">
             S
           </span>
           <span className="flex flex-col gap-[3px]">
             <strong className="text-[21px] font-[550] leading-[1.1] tracking-[-0.6px] max-[560px]:text-[19px]">
-              Silver Cap Sydney
+              Silver Cab Sydney
             </strong>
             <small className="text-[8px] tracking-[1.25px] opacity-75 max-[560px]:text-[7px] max-[560px]:tracking-[1px]">
               YOUR JOURNEY, OUR PRIORITY
