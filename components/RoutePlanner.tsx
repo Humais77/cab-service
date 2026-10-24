@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -61,7 +62,7 @@ const pickupIcon = L.divIcon({
       height:18px;
       border:3px solid white;
       border-radius:50%;
-      background:#3b82f6;
+      background:#2563eb;
       box-shadow:0 1px 5px #555;
     "></div>
   `,
@@ -154,7 +155,7 @@ function LocationField({
       try {
         const response = await fetch(
           `/api/locations?q=${encodeURIComponent(cleaned)}`,
-          { signal: controller.signal }
+          { signal: controller.signal },
         );
 
         const result = await response.json();
@@ -164,7 +165,7 @@ function LocationField({
         }
 
         setSuggestions(
-          Array.isArray(result.suggestions) ? result.suggestions : []
+          Array.isArray(result.suggestions) ? result.suggestions : [],
         );
       } catch (searchError) {
         if (controller.signal.aborted) return;
@@ -188,14 +189,14 @@ function LocationField({
 
   return (
     <div className="relative min-w-0">
-      <label className="mb-2 block text-sm font-semibold text-slate-700">
+      <label className="mb-2 block text-sm font-semibold text-slate-800">
         {label}
       </label>
 
       <div className="relative">
         <MapPin
           aria-hidden="true"
-          className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+          className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
         />
 
         <input
@@ -215,18 +216,18 @@ function LocationField({
           autoComplete="off"
           aria-label={label}
           aria-autocomplete="list"
-          className="w-full rounded-lg border border-white/15 bg-[#252b35] py-3.5 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-400 hover:border-white/30 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/15"
+          className="min-h-[48px] w-full rounded-lg border border-slate-300 bg-white py-3.5 pl-11 pr-3 text-base text-slate-900 outline-none transition placeholder:text-slate-500 hover:border-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
         />
       </div>
 
       {loading && (
-        <p className="mt-1.5 text-xs text-slate-500">
+        <p className="mt-1.5 text-xs text-slate-600">
           Searching locations…
         </p>
       )}
 
       {error && (
-        <p role="alert" className="mt-1.5 text-xs text-red-600">
+        <p role="alert" className="mt-1.5 text-xs text-red-700">
           {error}
         </p>
       )}
@@ -248,7 +249,7 @@ function LocationField({
                   setSuggestions([]);
                   setError("");
                 }}
-                className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-800 last:border-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
               >
                 {suggestion.address}
               </button>
@@ -262,7 +263,7 @@ function LocationField({
         !error &&
         suggestions.length === 0 &&
         query.trim() !== value?.address && (
-          <p className="mt-1.5 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs text-slate-600">
             No matching locations found in the configured service area.
           </p>
         )}
@@ -344,7 +345,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         setRouteError(
           error instanceof Error
             ? error.message
-            : "Could not calculate the driving route."
+            : "Could not calculate the driving route.",
         );
 
         onChange({
@@ -368,7 +369,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
   const routePositions = useMemo<[number, number][]>(() => {
     return (route?.geometry.coordinates ?? []).map(
-      ([longitude, latitude]) => [latitude, longitude]
+      ([longitude, latitude]) => [latitude, longitude],
     );
   }, [route]);
 
@@ -415,14 +416,14 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         />
       </div>
 
-      {/* Map toggle */}
+      {/* Route status and map toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-400/10 text-blue-300">
-            <Navigation className="h-3.5 w-3.5" />
+        <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
+            <Navigation className="h-4 w-4" />
           </span>
 
-          <span>
+          <span aria-live="polite">
             {routeLoading
               ? "Calculating your driving route…"
               : route
@@ -437,16 +438,16 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
           type="button"
           onClick={() => setShowMap((current) => !current)}
           aria-expanded={showMap}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/15 bg-[#252b35] px-3.5 py-2.5 text-sm font-medium text-slate-200 shadow-sm transition hover:border-blue-400/50 hover:bg-[#303846] hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500/20"
+          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-500/15"
         >
-          <MapIcon className="h-4 w-4" />
+          <MapIcon className="h-4 w-4 text-blue-700" />
 
           {showMap ? "Hide map" : "Open map"}
 
           {showMap ? (
-            <ChevronUp className="h-4 w-4" />
+            <ChevronUp className="h-4 w-4 text-slate-600" />
           ) : (
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-4 w-4 text-slate-600" />
           )}
         </button>
       </div>
@@ -488,7 +489,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
               <Polyline
                 positions={routePositions}
                 pathOptions={{
-                  color: "#3b82f6",
+                  color: "#2563eb",
                   weight: 5,
                   opacity: 0.85,
                 }}
@@ -504,7 +505,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
             />
           </MapContainer>
 
-          <p className="px-3 py-2 text-xs leading-5 text-slate-500">
+          <p className="px-3 py-2 text-xs leading-5 text-slate-600">
             Map data © OpenStreetMap contributors. Travel times are estimates
             and do not include live traffic.
           </p>
@@ -514,7 +515,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
       {routeError && (
         <p
           role="alert"
-          className="rounded-lg border border-red-100 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
         >
           {routeError}
         </p>
@@ -522,9 +523,9 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
       {/* Route summary */}
       {route && (
-        <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 p-3.5 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5 sm:p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
               Driving distance
             </p>
 
@@ -533,8 +534,8 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
             </p>
           </div>
 
-          <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
+          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
               Estimated time
             </p>
 
