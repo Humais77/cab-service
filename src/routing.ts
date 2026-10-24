@@ -1,3 +1,4 @@
+
 export type Coordinates = {
   longitude: number;
   latitude: number;
@@ -35,7 +36,16 @@ export async function getDrivingRoute(
   destination: Coordinates
 ): Promise<DrivingRoute> {
   if (!isInServiceArea(pickup) || !isInServiceArea(destination)) {
-    throw new Error("Locations are outside the configured service area.");
+    throw new Error(
+      "Pickup and destination must be within the configured service area."
+    );
+  }
+
+  if (
+    pickup.longitude === destination.longitude &&
+    pickup.latitude === destination.latitude
+  ) {
+    throw new Error("Pickup and destination must be different locations.");
   }
 
   const coordinates = [
@@ -46,22 +56,27 @@ export async function getDrivingRoute(
   const url = new URL(
     `https://router.project-osrm.org/route/v1/driving/${coordinates}`
   );
+
   url.searchParams.set("overview", "full");
   url.searchParams.set("geometries", "geojson");
   url.searchParams.set("steps", "false");
+  url.searchParams.set("alternatives", "false");
 
   const response = await fetch(url, {
-    headers: { Accept: "application/json" },
+    headers: {
+      Accept: "application/json",
+    },
     signal: AbortSignal.timeout(10000),
     cache: "no-store",
   });
 
   if (!response.ok) {
-    throw new Error(`OSRM returned status ${response.status}`);
+    throw new Error(`OSRM returned status ${response.status}.`);
   }
 
   const result = (await response.json()) as {
     code?: string;
+    message?: string;
     routes?: Array<{
       distance?: number;
       duration?: number;
@@ -78,11 +93,17 @@ export async function getDrivingRoute(
     result.code !== "Ok" ||
     !route ||
     typeof route.distance !== "number" ||
+    !Number.isFinite(route.distance) ||
+    route.distance <= 0 ||
     typeof route.duration !== "number" ||
+    !Number.isFinite(route.duration) ||
+    route.duration < 0 ||
     route.geometry?.type !== "LineString" ||
     !Array.isArray(route.geometry.coordinates)
   ) {
-    throw new Error("No driving route was found for these locations.");
+    throw new Error(
+      result.message || "No driving route was found for these locations."
+    );
   }
 
   const geometryCoordinates = route.geometry.coordinates.filter(
@@ -92,11 +113,15 @@ export async function getDrivingRoute(
       typeof point[0] === "number" &&
       typeof point[1] === "number" &&
       Number.isFinite(point[0]) &&
-      Number.isFinite(point[1])
+      Number.isFinite(point[1]) &&
+      point[0] >= -180 &&
+      point[0] <= 180 &&
+      point[1] >= -90 &&
+      point[1] <= 90
   );
 
   if (geometryCoordinates.length < 2) {
-    throw new Error("The route geometry is invalid.");
+    throw new Error("The route geometry returned by OSRM is invalid.");
   }
 
   return {

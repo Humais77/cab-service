@@ -2,11 +2,11 @@ import { getDrivingRoute } from "@/src/routing";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
-
 const coordinateSchema = z.object({
-  longitude: z.number().finite(),
-  latitude: z.number().finite(),
+  longitude: z.number().finite().min(-180).max(180),
+  latitude: z.number().finite().min(-90).max(90),
 });
+
 
 const routeSchema = z.object({
   pickup: coordinateSchema,
