@@ -61,7 +61,7 @@ const pickupIcon = L.divIcon({
       height:18px;
       border:3px solid white;
       border-radius:50%;
-      background:#16a34a;
+      background:#3b82f6;
       box-shadow:0 1px 5px #555;
     "></div>
   `,
@@ -215,7 +215,7 @@ function LocationField({
           autoComplete="off"
           aria-label={label}
           aria-autocomplete="list"
-          className="w-full rounded-xl border border-slate-200 bg-white py-3.5 pl-10 pr-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-green-600 focus:ring-4 focus:ring-green-100"
+          className="w-full rounded-lg border border-white/15 bg-[#252b35] py-3.5 pl-10 pr-3 text-sm text-white outline-none transition placeholder:text-slate-400 hover:border-white/30 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/15"
         />
       </div>
 
@@ -248,7 +248,7 @@ function LocationField({
                   setSuggestions([]);
                   setError("");
                 }}
-                className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-0 hover:bg-green-50 focus:bg-green-50 focus:outline-none"
+                className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-700 last:border-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
               >
                 {suggestion.address}
               </button>
@@ -418,7 +418,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
       {/* Map toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 text-xs text-slate-500">
-          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-green-50 text-green-700">
+          <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-blue-400/10 text-blue-300">
             <Navigation className="h-3.5 w-3.5" />
           </span>
 
@@ -437,7 +437,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
           type="button"
           onClick={() => setShowMap((current) => !current)}
           aria-expanded={showMap}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-200 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-green-300 hover:bg-green-50 hover:text-green-800 focus:outline-none focus:ring-4 focus:ring-green-100"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-lg border border-white/15 bg-[#252b35] px-3.5 py-2.5 text-sm font-medium text-slate-200 shadow-sm transition hover:border-blue-400/50 hover:bg-[#303846] hover:text-white focus:outline-none focus:ring-4 focus:ring-blue-500/20"
         >
           <MapIcon className="h-4 w-4" />
 
@@ -488,7 +488,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
               <Polyline
                 positions={routePositions}
                 pathOptions={{
-                  color: "#16a34a",
+                  color: "#3b82f6",
                   weight: 5,
                   opacity: 0.85,
                 }}
@@ -523,8 +523,8 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
       {/* Route summary */}
       {route && (
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-xl border border-green-100 bg-green-50/70 p-3.5 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-green-800">
+          <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 p-3.5 sm:p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
               Driving distance
             </p>
 
@@ -534,7 +534,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
           </div>
 
           <div className="rounded-xl border border-blue-100 bg-blue-50/70 p-3.5 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+            <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
               Estimated time
             </p>
 

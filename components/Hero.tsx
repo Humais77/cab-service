@@ -1,49 +1,43 @@
 import { ArrowRight, Phone } from "lucide-react";
 
-const PHONE_TEL = "+61200000000"; // e.g. "+61291234567"
+const PHONE_TEL = "+61200000000";
 const PHONE_DISPLAY = "(02) 0000 0000";
 
 export default function CabHero() {
   return (
     <section
-      className="relative flex min-h-[clamp(560px,80vh,880px)] items-center justify-center overflow-hidden bg-[#34383d] text-white max-[900px]:min-h-[70svh] max-[520px]:min-h-[64svh]"
+      className="relative isolate flex min-h-[760px] items-center justify-center overflow-hidden bg-[#101722] text-white sm:min-h-[820px] lg:min-h-[850px]"
       aria-labelledby="hero-title"
     >
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 scale-[1.015] bg-[url('/Hero.png')] bg-cover bg-[58%_54%] max-[900px]:bg-[58%_center] max-[520px]:bg-[60%_center]"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute inset-0 bg-[linear-gradient(90deg,rgba(12,17,23,0.55),rgba(12,17,23,0.12)_68%),linear-gradient(0deg,rgba(12,17,23,0.45),transparent_55%)] max-[520px]:bg-[linear-gradient(0deg,rgba(10,15,22,0.78),rgba(10,15,22,0.32)_78%)]"
-      />
-      <div className="relative z-[1] mx-auto mt-20 w-[min(1100px,90vw)] text-center max-[900px]:mt-[75px] max-[900px]:w-[calc(100%-36px)] max-[520px]:mt-16">
-        <p className="m-0 mb-4 text-[clamp(12px,1vw,15px)] font-bold tracking-[0.15em] max-[520px]:mx-auto max-[520px]:max-w-[320px] max-[520px]:text-[11px]">
-          SYDNEY'S RELIABLE CAB SERVICE · 24/7
-        </p>
-        <h1
-          id="hero-title"
-          className="m-0 font-serif text-[clamp(48px,6vw,88px)] leading-[1.05] font-normal tracking-[-0.045em] [text-shadow:0_2px_18px_#0004] max-[900px]:text-[clamp(44px,8.5vw,72px)] max-[520px]:text-[clamp(40px,11vw,54px)] max-[520px]:leading-[1.08]"
-        >
-          Your ride
-          <br className="max-[520px]:hidden" /> is a tap away.
+      <div aria-hidden="true" className="absolute inset-0 -z-20 scale-[1.02] bg-[url('/Hero.png')] bg-cover bg-center" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-b from-black/60 via-black/25 to-[#101722]/85" />
+      <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-black/45 via-transparent to-black/20" />
+
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col items-center px-5 pb-36 pt-28 text-center sm:px-8 sm:pb-40 sm:pt-32 lg:px-12 lg:pb-44 lg:pt-32">
+        <div className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90 backdrop-blur-md sm:text-xs">
+          <span className="h-2 w-2 rounded-full bg-sky-400" />
+          Sydney&apos;s reliable cab service · 24/7
+        </div>
+
+        <h1 id="hero-title" className="m-0 font-serif text-[clamp(48px,6vw,88px)] leading-[1.05] font-normal tracking-[-0.045em] [text-shadow:0_2px_18px_#0004] max-[900px]:text-[clamp(44px,8.5vw,72px)] max-[520px]:text-[clamp(40px,11vw,54px)] max-[520px]:leading-[1.08]">
+          Your ride<br className="max-[520px]:hidden" /> is a tap away.
         </h1>
+
         <p className="mx-auto mt-[18px] mb-0 max-w-[620px] text-[clamp(18px,1.6vw,24px)] leading-[1.5] [text-shadow:0_1px_8px_#0006] max-[520px]:max-w-[340px] max-[520px]:text-[18px]">
           Travel on your schedule, with comfort at every turn.
         </p>
 
-        {/* Call us */}
-        <a
-          href={`tel:${PHONE_TEL}`}
-          className="mt-6 inline-flex items-center justify-center gap-2.5 rounded-full border border-white/70 bg-white/10 px-6 py-3 text-[15px] font-semibold text-white no-underline backdrop-blur transition-colors hover:bg-white/20 max-[520px]:mt-5 max-[520px]:px-5 max-[520px]:py-2.5 max-[520px]:text-sm"
-          aria-label={`Call us at ${PHONE_DISPLAY}`}
-        >
-          <Phone size={17} aria-hidden="true" />
-          <span>
-            Call us: <span className="whitespace-nowrap">{PHONE_DISPLAY}</span>
-          </span>
-        </a>
+        <div className="mt-8 flex flex-col items-center gap-3 sm:flex-row">
+          <a href="#booking" className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full bg-[#1674e8] px-7 py-3 text-sm font-semibold text-white shadow-lg shadow-blue-950/20 transition duration-200 hover:bg-[#0863d2] focus:outline-none focus:ring-4 focus:ring-blue-300/50">
+            Book your ride <ArrowRight size={17} aria-hidden="true" />
+          </a>
+          <a href={`tel:${PHONE_TEL}`} aria-label={`Call us at ${PHONE_DISPLAY}`} className="inline-flex min-h-12 items-center justify-center gap-2.5 rounded-full border border-white/35 bg-white/10 px-7 py-3 text-sm font-semibold text-white backdrop-blur-md transition hover:bg-white/20 focus:outline-none focus:ring-4 focus:ring-white/30">
+            <Phone size={16} aria-hidden="true" /> {PHONE_DISPLAY}
+          </a>
+        </div>
       </div>
+
+      <div aria-hidden="true" className="absolute inset-x-0 bottom-0 h-36 bg-gradient-to-t from-[#101722]/80 to-transparent" />
     </section>
   );
 }

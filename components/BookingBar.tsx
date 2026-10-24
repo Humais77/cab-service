@@ -54,20 +54,20 @@ const RoutePlanner = dynamic(
     loading: () => (
       <div className="space-y-4 animate-pulse">
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <div className="h-[74px] rounded-xl bg-slate-100" />
-          <div className="h-[74px] rounded-xl bg-slate-100" />
+          <div className="h-[74px] rounded-xl bg-[#252b35]" />
+          <div className="h-[74px] rounded-xl bg-[#252b35]" />
         </div>
 
-        <div className="h-10 rounded-xl bg-slate-100" />
+        <div className="h-10 rounded-xl bg-[#252b35]" />
       </div>
     ),
   }
 );
 const inputClass =
-  "w-full rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-green-600 focus:ring-4 focus:ring-green-100";
+  "w-full min-h-[48px] rounded-lg border border-white/15 bg-[#252b35] px-3.5 py-3 text-sm text-white outline-none transition placeholder:text-slate-400 hover:border-white/30 focus:border-blue-400 focus:ring-4 focus:ring-blue-500/15";
 
 const labelClass =
-  "mb-2 block text-sm font-semibold text-slate-700";
+  "mb-2 block text-sm font-medium text-slate-200";
 
 export default function BookingBar() {
   const [tripType, setTripType] = useState<"One way" | "Return">("One way");
@@ -403,29 +403,29 @@ useEffect(() => {
   return (
     <section
       id="booking"
-      className="w-full scroll-mt-24 px-4 py-8 sm:px-6 sm:py-10 lg:px-8"
+      className="relative z-20 -mt-24 w-full scroll-mt-24 px-4 pb-12 sm:-mt-28 sm:px-6 sm:pb-16 lg:-mt-32 lg:px-8"
     >
-      <div className="mx-auto max-w-6xl overflow-visible rounded-2xl border border-slate-200/80 bg-white shadow-[0_18px_60px_rgba(15,23,42,0.08)]">
+      <div className="mx-auto max-w-[1320px] overflow-visible rounded-2xl border border-white/15 bg-[#171c25]/95 text-white shadow-[0_25px_80px_rgba(0,0,0,0.35)] backdrop-blur-xl sm:rounded-3xl">
         {/* Header */}
-        <div className="border-b border-slate-100 px-5 py-5 sm:px-7 sm:py-6">
+        <div className="border-b border-white/10 px-5 py-5 sm:px-8 sm:py-6">
           <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
             <div>
-              <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-green-50 px-3 py-1 text-xs font-semibold text-green-800">
-                <span className="h-1.5 w-1.5 rounded-full bg-green-600" />
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-blue-400/20 bg-blue-400/10 px-3 py-1.5 text-[10px] font-semibold tracking-[0.14em] text-blue-200 sm:text-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
                 AVAILABLE 24/7
               </div>
 
-              <h2 className="text-xl font-bold tracking-tight text-slate-900 sm:text-2xl">
+              <h2 className="text-2xl font-semibold tracking-tight text-white sm:text-3xl">
                 Book your ride
               </h2>
 
-              <p className="mt-1 text-sm text-slate-500">
+              <p className="mt-2 text-sm leading-6 text-slate-400 sm:text-base">
                 Where to? Choose your route and travel time.
               </p>
             </div>
 
             {/* Trip type */}
-            <div className="inline-flex w-fit rounded-xl bg-slate-100 p-1">
+            <div className="inline-flex w-fit rounded-full border border-white/15 bg-[#252b35] p-1">
               {(["One way", "Return"] as const).map((type) => (
                 <button
                   key={type}
@@ -437,8 +437,8 @@ useEffect(() => {
                   aria-pressed={tripType === type}
                   className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
                     tripType === type
-                      ? "bg-slate-900 text-white shadow-sm"
-                      : "text-slate-600 hover:text-slate-900"
+                      ? "bg-[#1674e8] text-white shadow-md"
+                      : "text-slate-300 hover:bg-white/5 hover:text-white"
                   }`}
                 >
                   {type}
@@ -448,14 +448,14 @@ useEffect(() => {
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6 p-5 sm:p-7">
+        <form onSubmit={handleSubmit} className="space-y-6 p-5 sm:space-y-7 sm:p-8 lg:p-9">
           {/* Main booking fields: pickup, destination, date and time */}
           <RoutePlanner onChange={handleRouteChange} />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label htmlFor="journey-date" className={labelClass}>
-                <CalendarDays className="mr-2 inline h-4 w-4 text-green-700" />
+                <CalendarDays className="mr-2 inline h-4 w-4 text-blue-300" />
                 Journey date
               </label>
 
@@ -471,7 +471,7 @@ useEffect(() => {
 
             <div>
               <label htmlFor="journey-time" className={labelClass}>
-                <Clock3 className="mr-2 inline h-4 w-4 text-green-700" />
+                <Clock3 className="mr-2 inline h-4 w-4 text-blue-300" />
                 Pickup time
               </label>
 
@@ -487,10 +487,10 @@ useEffect(() => {
 
           {/* Return details only appear for a return trip */}
           {tripType === "Return" && (
-            <div className="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 bg-slate-50/70 p-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 rounded-xl border border-white/10 bg-[#252b35] p-4 sm:grid-cols-2">
               <div>
                 <label htmlFor="return-date" className={labelClass}>
-                  <CalendarDays className="mr-2 inline h-4 w-4 text-slate-500" />
+                  <CalendarDays className="mr-2 inline h-4 w-4 text-slate-400" />
                   Return date
                 </label>
 
@@ -506,7 +506,7 @@ useEffect(() => {
 
               <div>
                 <label htmlFor="return-time" className={labelClass}>
-                  <Clock3 className="mr-2 inline h-4 w-4 text-slate-500" />
+                  <Clock3 className="mr-2 inline h-4 w-4 text-slate-400" />
                   Return time
                 </label>
 
@@ -527,28 +527,28 @@ useEffect(() => {
             onClick={() => setShowOptions((current) => !current)}
             aria-expanded={showOptions}
             aria-controls="booking-options"
-            className="group flex w-full items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3.5 text-left transition hover:border-green-300 hover:bg-green-50/60 focus:outline-none focus:ring-4 focus:ring-green-100"
+            className="group flex w-full items-center justify-between gap-3 rounded-xl border border-white/10 bg-[#252b35] px-4 py-3.5 text-left transition hover:border-green-300 hover:bg-blue-400/10/60 focus:outline-none focus:ring-4 focus:ring-blue-500/15"
           >
             <span className="flex min-w-0 items-center gap-3">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-600 shadow-sm ring-1 ring-slate-200 transition group-hover:text-green-700">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white text-slate-300 shadow-sm ring-1 ring-slate-200 transition group-hover:text-blue-300">
                 <SlidersHorizontal className="h-4 w-4" />
               </span>
 
               <span>
-                <span className="block text-sm font-semibold text-slate-900">
+                <span className="block text-sm font-semibold text-white">
                   {showOptions ? "Hide options" : "View options"}
                 </span>
 
-                <span className="mt-0.5 block text-xs text-slate-500">
+                <span className="mt-0.5 block text-xs text-slate-400">
                   Vehicle, passenger details and payment
                 </span>
               </span>
             </span>
 
             {showOptions ? (
-              <ChevronUp className="h-5 w-5 shrink-0 text-slate-500" />
+              <ChevronUp className="h-5 w-5 shrink-0 text-slate-400" />
             ) : (
-              <ChevronDown className="h-5 w-5 shrink-0 text-slate-500" />
+              <ChevronDown className="h-5 w-5 shrink-0 text-slate-400" />
             )}
           </button>
 
@@ -556,14 +556,14 @@ useEffect(() => {
           {showOptions && (
             <div
               id="booking-options"
-              className="space-y-6 rounded-xl border border-slate-200 p-4 sm:p-5"
+              className="space-y-6 rounded-2xl border border-white/10 bg-[#1d232d] p-4 sm:space-y-7 sm:p-6"
             >
               <div>
-                <h3 className="text-base font-bold text-slate-900">
+                <h3 className="text-base font-bold text-white">
                   Your ride details
                 </h3>
 
-                <p className="mt-1 text-sm text-slate-500">
+                <p className="mt-2 text-sm leading-6 text-slate-400 sm:text-base">
                   Tell us which vehicle you need and how to contact you.
                 </p>
               </div>
@@ -571,7 +571,7 @@ useEffect(() => {
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <div>
                   <label htmlFor="vehicle" className={labelClass}>
-                    <CarFront className="mr-2 inline h-4 w-4 text-green-700" />
+                    <CarFront className="mr-2 inline h-4 w-4 text-blue-300" />
                     Vehicle
                   </label>
 
@@ -602,7 +602,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="passengers" className={labelClass}>
-                    <Users className="mr-2 inline h-4 w-4 text-green-700" />
+                    <Users className="mr-2 inline h-4 w-4 text-blue-300" />
                     Passengers
                   </label>
 
@@ -626,7 +626,7 @@ useEffect(() => {
 </select>
 
 {selectedVehicle && (
-  <p className="mt-1 text-xs text-slate-500">
+  <p className="mt-1 text-xs text-slate-400">
     Maximum capacity: {selectedVehicle.capacity} passengers
   </p>
 )}
@@ -662,7 +662,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="customer-name" className={labelClass}>
-                    <UserRound className="mr-2 inline h-4 w-4 text-green-700" />
+                    <UserRound className="mr-2 inline h-4 w-4 text-blue-300" />
                     Full name
                   </label>
 
@@ -681,7 +681,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="customer-email" className={labelClass}>
-                    <Mail className="mr-2 inline h-4 w-4 text-green-700" />
+                    <Mail className="mr-2 inline h-4 w-4 text-blue-300" />
                     Email (optional)
                   </label>
 
@@ -698,7 +698,7 @@ useEffect(() => {
 
                 <div>
                   <label htmlFor="customer-phone" className={labelClass}>
-                    <Phone className="mr-2 inline h-4 w-4 text-green-700" />
+                    <Phone className="mr-2 inline h-4 w-4 text-blue-300" />
                     Phone number
                   </label>
 
@@ -739,15 +739,15 @@ useEffect(() => {
               </div>
 
               <fieldset className="space-y-3">
-                <legend className="mb-3 text-base font-bold text-slate-900">
+                <legend className="mb-3 text-base font-bold text-white">
                   Choose payment method
                 </legend>
 
                 <label
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
                     paymentMethod === "PAY_DRIVER"
-                      ? "border-green-600 bg-green-50/70"
-                      : "border-slate-200 hover:border-slate-300"
+                      ? "border-green-600 bg-blue-400/10/70"
+                      : "border-white/10 hover:border-slate-300"
                   }`}
                 >
                   <input
@@ -756,17 +756,17 @@ useEffect(() => {
                     value="PAY_DRIVER"
                     checked={paymentMethod === "PAY_DRIVER"}
                     onChange={() => setPaymentMethod("PAY_DRIVER")}
-                    className="mt-1 accent-green-600"
+                    className="mt-1 accent-blue-500"
                   />
 
-                  <Banknote className="mt-0.5 h-5 w-5 shrink-0 text-green-700" />
+                  <Banknote className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
 
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-slate-900">
+                    <span className="block font-semibold text-white">
                       Pay in the cab
                     </span>
 
-                    <span className="mt-1 block text-sm leading-5 text-slate-600">
+                    <span className="mt-1 block text-sm leading-5 text-slate-300">
                       Pay your driver by card or cash at the end of the trip.
                       Your booking stays unpaid until the driver confirms
                       receipt.
@@ -774,15 +774,15 @@ useEffect(() => {
                   </span>
 
                   {paymentMethod === "PAY_DRIVER" && (
-                    <Check className="h-5 w-5 shrink-0 text-green-700" />
+                    <Check className="h-5 w-5 shrink-0 text-blue-300" />
                   )}
                 </label>
 
                 <label
                   className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
                     paymentMethod === "STRIPE"
-                      ? "border-green-600 bg-green-50/70"
-                      : "border-slate-200 hover:border-slate-300"
+                      ? "border-green-600 bg-blue-400/10/70"
+                      : "border-white/10 hover:border-slate-300"
                   }`}
                 >
                   <input
@@ -791,24 +791,24 @@ useEffect(() => {
                     value="STRIPE"
                     checked={paymentMethod === "STRIPE"}
                     onChange={() => setPaymentMethod("STRIPE")}
-                    className="mt-1 accent-green-600"
+                    className="mt-1 accent-blue-500"
                   />
 
-                  <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-green-700" />
+                  <CreditCard className="mt-0.5 h-5 w-5 shrink-0 text-blue-300" />
 
                   <span className="min-w-0 flex-1">
-                    <span className="block font-semibold text-slate-900">
+                    <span className="block font-semibold text-white">
                       Pay online securely
                     </span>
 
-                    <span className="mt-1 block text-sm leading-5 text-slate-600">
+                    <span className="mt-1 block text-sm leading-5 text-slate-300">
                       Stripe Checkout. Available payment methods depend on
                       your device and Stripe account settings.
                     </span>
                   </span>
 
                   {paymentMethod === "STRIPE" && (
-                    <Check className="h-5 w-5 shrink-0 text-green-700" />
+                    <Check className="h-5 w-5 shrink-0 text-blue-300" />
                   )}
                 </label>
               </fieldset>
@@ -819,33 +819,33 @@ useEffect(() => {
           {(estimate.cents != null ||
             estimate.loading ||
             estimate.error) && (
-            <div className="rounded-xl border border-blue-100 bg-blue-50/70 px-4 py-3.5">
+            <div className="rounded-xl border border-blue-400/20 bg-blue-400/10 px-4 py-3.5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-700">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-200">
                     Estimated fare
                   </p>
 
                   {estimate.loading && (
-                    <p className="mt-1 text-sm text-slate-600">
+                    <p className="mt-1 text-sm text-slate-300">
                       Calculating fare…
                     </p>
                   )}
 
                   {estimate.error && (
-                    <p className="mt-1 text-sm text-red-600">
+                    <p className="mt-1 text-sm text-red-300">
                       {estimate.error}
                     </p>
                   )}
 
                   {estimate.cents != null && !estimate.loading && (
-                    <p className="mt-1 text-2xl font-bold text-slate-900">
+                    <p className="mt-1 text-2xl font-bold text-white">
                       {formatAUD(estimate.cents)}
                     </p>
                   )}
                 </div>
 
-                <p className="max-w-[220px] text-xs leading-5 text-slate-500">
+                <p className="max-w-[220px] text-xs leading-5 text-slate-400">
                   Final fare may vary with tolls, waiting time and extras.
                 </p>
               </div>
@@ -862,7 +862,7 @@ useEffect(() => {
             </div>
           )}
           {optionsError && (
-  <p role="alert" className="text-sm text-red-600">
+  <p role="alert" className="text-sm text-red-300">
     {optionsError} Please refresh the page and try again.
   </p>
 )}
@@ -871,7 +871,7 @@ useEffect(() => {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-green-600 px-5 py-4 text-sm font-bold text-white shadow-sm transition hover:bg-green-700 focus:outline-none focus:ring-4 focus:ring-green-200 disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex min-h-14 w-full items-center justify-center gap-2.5 rounded-xl bg-[#1674e8] px-5 py-4 text-sm font-semibold text-white shadow-lg shadow-blue-950/20 transition duration-200 hover:bg-[#0863d2] focus:outline-none focus:ring-4 focus:ring-blue-400/30 disabled:cursor-not-allowed disabled:opacity-60 sm:min-h-16 sm:text-base"
           >
             {isSubmitting
               ? "Processing booking..."
@@ -882,7 +882,7 @@ useEffect(() => {
             {!isSubmitting && <ArrowRight className="h-4 w-4" />}
           </button>
 
-          <p className="text-center text-xs leading-5 text-slate-500">
+          <p className="text-center text-xs leading-5 text-slate-400">
             Your fare is calculated using the selected driving route. Return
             bookings are charged as two trips over the same route. Tolls,
             waiting time and extras may be added.
