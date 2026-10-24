@@ -4,7 +4,6 @@ import { MessageCircle, Phone, X } from "lucide-react";
 import { useState } from "react";
 
 const PHONE_NUMBER = "+61400000000"; // Replace with your actual phone number
-const WHATSAPP_NUMBER = "61400000000"; // Country code + number, without + or spaces
 
 export default function FloatingContactButtons() {
   const [phoneHovered, setPhoneHovered] = useState(false);
@@ -15,20 +14,6 @@ export default function FloatingContactButtons() {
 
   return (
     <div className="fixed bottom-6 right-5 z-[9999] flex flex-col items-end gap-3 sm:bottom-8 sm:right-8">
-      {/* WhatsApp Button */}
-      <a
-        href={`https://wa.me/${WHATSAPP_NUMBER}?text=${whatsappMessage}`}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Chat with us on WhatsApp"
-        className="group flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-all duration-300 hover:scale-110 hover:shadow-xl active:scale-95"
-      >
-        <MessageCircle
-          size={28}
-          strokeWidth={2.2}
-          className="transition-transform duration-300 group-hover:rotate-[-8deg]"
-        />
-      </a>
 
       {/* Phone Button */}
       <div

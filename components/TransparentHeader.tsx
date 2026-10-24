@@ -3,7 +3,10 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ChevronDown, Menu, X, ArrowUpRight } from "lucide-react";
+import { ChevronDown, Menu, X, ArrowUpRight, Phone } from "lucide-react";
+
+const PHONE_TEL = "+61200000000"; // e.g. "+61291234567"
+const PHONE_DISPLAY = "(02) 0000 0000";
 
 const serviceLinks = [
   { href: "/services", label: "All services" },
@@ -18,7 +21,7 @@ export default function TransparentHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
   const isHome = pathname === "/";
-  
+
   const closeMenus = () => {
     setMenuOpen(false);
     setServicesOpen(false);
@@ -53,15 +56,26 @@ export default function TransparentHeader() {
           </span>
         </Link>
 
-        <button
-          className="hidden border-0 bg-transparent text-inherit max-[800px]:inline-flex max-[800px]:h-[46px] max-[800px]:w-[46px] max-[800px]:items-center max-[800px]:justify-center max-[800px]:rounded-full max-[800px]:border max-[800px]:border-current"
-          type="button"
-          aria-label={menuOpen ? "Close navigation" : "Open navigation"}
-          aria-expanded={menuOpen}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? <X size={27} /> : <Menu size={27} />}
-        </button>
+        {/* Mobile-only call icon — hidden on desktop */}
+        <div className="hidden items-center gap-2 max-[800px]:flex">
+          <a
+            href={`tel:${PHONE_TEL}`}
+            aria-label={`Call us at ${PHONE_DISPLAY}`}
+            className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-full border border-current text-inherit no-underline transition-opacity hover:opacity-70"
+          >
+            <Phone size={22} aria-hidden="true" />
+          </a>
+
+          <button
+            className="inline-flex h-[46px] w-[46px] items-center justify-center rounded-full border border-current bg-transparent text-inherit"
+            type="button"
+            aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+            aria-expanded={menuOpen}
+            onClick={() => setMenuOpen((open) => !open)}
+          >
+            {menuOpen ? <X size={27} /> : <Menu size={27} />}
+          </button>
+        </div>
 
         <nav
           className={[

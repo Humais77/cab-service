@@ -1,5 +1,8 @@
 import { ArrowRight, Phone } from "lucide-react";
 
+const PHONE_TEL = "+61200000000"; // e.g. "+61291234567"
+const PHONE_DISPLAY = "(02) 0000 0000";
+
 export default function CabHero() {
   return (
     <section
@@ -25,9 +28,21 @@ export default function CabHero() {
           Your ride
           <br className="max-[520px]:hidden" /> is a tap away.
         </h1>
-       <p className="mx-auto mt-[18px] mb-0 max-w-[620px] text-[clamp(18px,1.6vw,24px)] leading-[1.5] [text-shadow:0_1px_8px_#0006] max-[520px]:max-w-[340px] max-[520px]:text-[18px]">
+        <p className="mx-auto mt-[18px] mb-0 max-w-[620px] text-[clamp(18px,1.6vw,24px)] leading-[1.5] [text-shadow:0_1px_8px_#0006] max-[520px]:max-w-[340px] max-[520px]:text-[18px]">
           Travel on your schedule, with comfort at every turn.
         </p>
+
+        {/* Call us */}
+        <a
+          href={`tel:${PHONE_TEL}`}
+          className="mt-6 inline-flex items-center justify-center gap-2.5 rounded-full border border-white/70 bg-white/10 px-6 py-3 text-[15px] font-semibold text-white no-underline backdrop-blur transition-colors hover:bg-white/20 max-[520px]:mt-5 max-[520px]:px-5 max-[520px]:py-2.5 max-[520px]:text-sm"
+          aria-label={`Call us at ${PHONE_DISPLAY}`}
+        >
+          <Phone size={17} aria-hidden="true" />
+          <span>
+            Call us: <span className="whitespace-nowrap">{PHONE_DISPLAY}</span>
+          </span>
+        </a>
       </div>
     </section>
   );
