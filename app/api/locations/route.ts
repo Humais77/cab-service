@@ -9,106 +9,74 @@ const SYDNEY_BOUNDS = {
   maxLng: 152,
 };
 
-type PhotonValue = string | number | null | undefined;
-
-type PhotonFeature = {
+type GeoapifyFeature = {
   geometry?: {
     coordinates?: unknown;
   };
   properties?: {
-    name?: PhotonValue;
-    street?: PhotonValue;
-    housenumber?: PhotonValue;
-    postcode?: PhotonValue;
-    city?: PhotonValue;
-    district?: PhotonValue;
-    locality?: PhotonValue;
-    county?: PhotonValue;
-    state?: PhotonValue;
-    country?: PhotonValue;
-    osm_key?: PhotonValue;
-    osm_value?: PhotonValue;
+    formatted?: unknown;
+    name?: unknown;
+    housenumber?: unknown;
+    street?: unknown;
+    suburb?: unknown;
+    district?: unknown;
+    city?: unknown;
+    county?: unknown;
+    state?: unknown;
+    postcode?: unknown;
+    country?: unknown;
+    place_id?: unknown;
   };
 };
 
-function text(value: PhotonValue): string {
-  if (typeof value !== "string" && typeof value !== "number") {
-    return "";
-  }
-
-  return String(value).trim();
+function toText(value: unknown): string {
+  return typeof value === "string" || typeof value === "number"
+    ? String(value).trim()
+    : "";
 }
 
-function withinServiceArea(longitude: number, latitude: number) {
+function withinServiceArea(lon: number, lat: number): boolean {
   return (
-    latitude >= SYDNEY_BOUNDS.minLat &&
-    latitude <= SYDNEY_BOUNDS.maxLat &&
-    longitude >= SYDNEY_BOUNDS.minLng &&
-    longitude <= SYDNEY_BOUNDS.maxLng
+    lat >= SYDNEY_BOUNDS.minLat &&
+    lat <= SYDNEY_BOUNDS.maxLat &&
+    lon >= SYDNEY_BOUNDS.minLng &&
+    lon <= SYDNEY_BOUNDS.maxLng
   );
 }
 
-function addressFromProperties(
-  properties: NonNullable<PhotonFeature["properties"]>
-) {
-  const houseNumber = text(properties.housenumber);
-  const street = text(properties.street);
-  const name = text(properties.name);
+function getAddress(properties: NonNullable<GeoapifyFeature["properties"]>) {
+  // Geoapify's formatted result usually has the most complete address.
+  const formatted = toText(properties.formatted);
+  if (formatted) return formatted;
 
-  // Prefer a real house number + street supplied by Photon.
-  const streetLine = [houseNumber, street].filter(Boolean).join(" ");
+  const streetLine = [
+    toText(properties.housenumber),
+    toText(properties.street),
+  ]
+    .filter(Boolean)
+    .join(" ");
 
-  // Avoid repeating the street when Photon uses it as the name too.
-  const primary = streetLine || name;
-
-  const locality =
-    text(properties.locality) ||
-    text(properties.district) ||
-    text(properties.city) ||
-    text(properties.county);
-
-  const parts = [
-    primary,
-    locality,
-    text(properties.city),
-    text(properties.state),
-    text(properties.postcode),
-    text(properties.country),
-  ].filter(Boolean);
-
-  return [...new Set(parts)].join(", ");
-}
-
-function addressScore(
-  feature: PhotonFeature,
-  query: string,
-  address: string
-) {
-  const properties = feature.properties ?? {};
-  const normalizedQuery = query.toLowerCase();
-  const normalizedAddress = address.toLowerCase();
-
-  let score = 0;
-
-  // Prefer results with a house number and street.
-  if (text(properties.housenumber)) score += 8;
-  if (text(properties.street)) score += 4;
-
-  // Prefer results whose displayed address contains the search text.
-  if (normalizedAddress.includes(normalizedQuery)) score += 5;
-
-  // A numeric query may be a street number; prioritize numbered results.
-  const numberMatch = normalizedQuery.match(/^\s*(\d+[a-z]?)\b/i);
-  if (numberMatch && text(properties.housenumber).toLowerCase() === numberMatch[1].toLowerCase()) {
-    score += 10;
-  }
-
-  return score;
+  return [
+    streetLine || toText(properties.name),
+    toText(properties.suburb) || toText(properties.district),
+    toText(properties.city) || toText(properties.county),
+    toText(properties.state),
+    toText(properties.postcode),
+    toText(properties.country),
+  ]
+    .filter(Boolean)
+    .filter((part, index, parts) =>
+      parts.findIndex(
+        (candidate) => candidate.toLowerCase() === part.toLowerCase()
+      ) === index
+    )
+    .join(", ");
 }
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const query = (searchParams.get("q") ?? "").trim();
+  const apiKey = process.env.GEOAPIFY_API_KEY;
 
   if (query.length < 3) {
     return NextResponse.json({ suggestions: [] });
@@ -121,25 +89,33 @@ export async function GET(request: Request) {
     );
   }
 
-  const url = new URL("https://photon.komoot.io/api/");
-  url.searchParams.set("q", query);
+  if (!apiKey) {
+    console.error("GEOAPIFY_API_KEY is not configured.");
+    return NextResponse.json(
+      { error: "Location search is not configured." },
+      { status: 500 }
+    );
+  }
+
+  const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
+
+  url.searchParams.set("text", query);
+  url.searchParams.set("format", "geojson");
   url.searchParams.set("limit", "20");
-  url.searchParams.set("lat", "-33.8688");
-  url.searchParams.set("lon", "151.2093");
   url.searchParams.set("lang", "en");
+  url.searchParams.set("filter", "rect:150,-35,152,-32");
+  url.searchParams.set("bias", "proximity:151.2093,-33.8688");
+  url.searchParams.set("apiKey", apiKey);
 
   try {
     const response = await fetch(url, {
-      headers: {
-        Accept: "application/json",
-      },
+      headers: { Accept: "application/json" },
       signal: AbortSignal.timeout(8000),
-      // Avoid caching potentially sensitive search terms in shared caches.
       cache: "no-store",
     });
 
     if (!response.ok) {
-      console.error("Photon returned status:", response.status);
+      console.error("Geoapify search status:", response.status);
 
       return NextResponse.json(
         { error: "Location search is temporarily unavailable." },
@@ -148,8 +124,10 @@ export async function GET(request: Request) {
     }
 
     const result = (await response.json()) as {
-      features?: PhotonFeature[];
+      features?: GeoapifyFeature[];
     };
+
+    const queryLower = query.toLowerCase();
 
     const candidates = (result.features ?? []).flatMap((feature) => {
       const coordinates = feature.geometry?.coordinates;
@@ -169,33 +147,49 @@ export async function GET(request: Request) {
 
       const longitude = coordinates[0];
       const latitude = coordinates[1];
-      const address = addressFromProperties(properties);
+      const address = getAddress(properties);
 
-      if (
-        !address ||
-        !withinServiceArea(longitude, latitude)
-      ) {
+      if (!address || !withinServiceArea(longitude, latitude)) {
         return [];
       }
 
-      return [
-        {
-          id: `${longitude},${latitude}:${address}`,
-          address,
-          longitude,
-          latitude,
-          score: addressScore(feature, query, address),
-        },
-      ];
+      const name = toText(properties.name);
+      const houseNumber = toText(properties.housenumber);
+      const street = toText(properties.street);
+
+      let score = 0;
+
+      if (address.toLowerCase().includes(queryLower)) score += 5;
+      if (name.toLowerCase().includes(queryLower)) score += 10;
+      if (street && address.toLowerCase().includes(street.toLowerCase())) {
+        score += 2;
+      }
+
+      const leadingNumber = query.match(/^\s*(\d+[a-z]?)\b/i);
+
+      if (
+        leadingNumber &&
+        houseNumber.toLowerCase() === leadingNumber[1].toLowerCase()
+      ) {
+        score += 10;
+      }
+
+      return [{
+        id: `${toText(properties.place_id) || `${longitude},${latitude}`}:${address}`,
+        address,
+        longitude,
+        latitude,
+        score,
+      }];
     });
 
-    // Remove duplicate labels at the same coordinates, then rank.
+    // Deduplicate identical coordinates and prefer the most relevant result.
     const unique = new Map<string, (typeof candidates)[number]>();
 
     for (const candidate of candidates) {
       const key = `${candidate.longitude.toFixed(6)},${candidate.latitude.toFixed(6)}`;
-
       const existing = unique.get(key);
+
       if (!existing || candidate.score > existing.score) {
         unique.set(key, candidate);
       }
@@ -211,7 +205,7 @@ export async function GET(request: Request) {
       { headers: { "Cache-Control": "no-store" } }
     );
   } catch (error) {
-    console.error("Photon location search error:", error);
+    console.error("Geoapify autocomplete error:", error);
 
     return NextResponse.json(
       { error: "Could not search locations. Please try again." },

@@ -20,7 +20,7 @@ const SYDNEY_BOUNDS = {
   maxLng: 152,
 };
 
-function isInServiceArea(point: Coordinates) {
+function isInServiceArea(point: Coordinates): boolean {
   return (
     Number.isFinite(point.longitude) &&
     Number.isFinite(point.latitude) &&
@@ -28,6 +28,21 @@ function isInServiceArea(point: Coordinates) {
     point.latitude <= SYDNEY_BOUNDS.maxLat &&
     point.longitude >= SYDNEY_BOUNDS.minLng &&
     point.longitude <= SYDNEY_BOUNDS.maxLng
+  );
+}
+
+function isCoordinate(value: unknown): value is [number, number] {
+  return (
+    Array.isArray(value) &&
+    value.length >= 2 &&
+    typeof value[0] === "number" &&
+    typeof value[1] === "number" &&
+    Number.isFinite(value[0]) &&
+    Number.isFinite(value[1]) &&
+    value[0] >= -180 &&
+    value[0] <= 180 &&
+    value[1] >= -90 &&
+    value[1] <= 90
   );
 }
 
@@ -48,88 +63,118 @@ export async function getDrivingRoute(
     throw new Error("Pickup and destination must be different locations.");
   }
 
-  const coordinates = [
-    `${pickup.longitude},${pickup.latitude}`,
-    `${destination.longitude},${destination.latitude}`,
-  ].join(";");
+  const apiKey = process.env.GEOAPIFY_API_KEY;
 
-  const url = new URL(
-    `https://router.project-osrm.org/route/v1/driving/${coordinates}`
+  if (!apiKey) {
+    throw new Error("GEOAPIFY_API_KEY is not configured.");
+  }
+
+  const url = new URL("https://api.geoapify.com/v1/routing");
+
+  url.searchParams.set(
+    "waypoints",
+    `${pickup.latitude},${pickup.longitude}|${destination.latitude},${destination.longitude}`
   );
-
-  url.searchParams.set("overview", "full");
-  url.searchParams.set("geometries", "geojson");
-  url.searchParams.set("steps", "false");
-  url.searchParams.set("alternatives", "false");
+  url.searchParams.set("mode", "drive");
+  url.searchParams.set("units", "metric");
+  url.searchParams.set("apiKey", apiKey);
 
   const response = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-    },
+    headers: { Accept: "application/json" },
     signal: AbortSignal.timeout(10000),
     cache: "no-store",
   });
 
-  if (!response.ok) {
-    throw new Error(`OSRM returned status ${response.status}.`);
-  }
-
-  const result = (await response.json()) as {
-    code?: string;
+  const result = (await response.json().catch(() => null)) as {
     message?: string;
-    routes?: Array<{
-      distance?: number;
-      duration?: number;
+    error?: string;
+    features?: Array<{
       geometry?: {
         type?: string;
         coordinates?: unknown;
       };
+      properties?: {
+        distance?: unknown;
+        time?: unknown;
+      };
     }>;
-  };
+  } | null;
 
-  const route = result.routes?.[0];
+  if (!response.ok) {
+    console.error("Geoapify routing failed:", {
+      status: response.status,
+      message: result?.message ?? result?.error,
+    });
 
-  if (
-    result.code !== "Ok" ||
-    !route ||
-    typeof route.distance !== "number" ||
-    !Number.isFinite(route.distance) ||
-    route.distance <= 0 ||
-    typeof route.duration !== "number" ||
-    !Number.isFinite(route.duration) ||
-    route.duration < 0 ||
-    route.geometry?.type !== "LineString" ||
-    !Array.isArray(route.geometry.coordinates)
-  ) {
     throw new Error(
-      result.message || "No driving route was found for these locations."
+      result?.message ??
+        result?.error ??
+        "The routing provider could not calculate this journey."
     );
   }
 
-  const geometryCoordinates = route.geometry.coordinates.filter(
-    (point): point is [number, number] =>
-      Array.isArray(point) &&
-      point.length >= 2 &&
-      typeof point[0] === "number" &&
-      typeof point[1] === "number" &&
-      Number.isFinite(point[0]) &&
-      Number.isFinite(point[1]) &&
-      point[0] >= -180 &&
-      point[0] <= 180 &&
-      point[1] >= -90 &&
-      point[1] <= 90
-  );
+  const feature = result?.features?.[0];
+  const properties = feature?.properties;
+  const geometry = feature?.geometry;
 
-  if (geometryCoordinates.length < 2) {
-    throw new Error("The route geometry returned by OSRM is invalid.");
+  const distance = properties?.distance;
+  const duration = properties?.time;
+
+  if (
+    typeof distance !== "number" ||
+    !Number.isFinite(distance) ||
+    distance <= 0 ||
+    typeof duration !== "number" ||
+    !Number.isFinite(duration) ||
+    duration < 0
+  ) {
+    console.error("Geoapify returned an unexpected route response:", {
+      geometryType: geometry?.type,
+      distance,
+      duration,
+      hasFeature: Boolean(feature),
+    });
+
+    throw new Error(
+      "The routing provider returned incomplete distance or duration data."
+    );
+  }
+
+  let coordinates: [number, number][] = [];
+
+  if (
+    geometry?.type === "LineString" &&
+    Array.isArray(geometry.coordinates)
+  ) {
+    coordinates = geometry.coordinates.filter(isCoordinate);
+  } else if (
+    geometry?.type === "MultiLineString" &&
+    Array.isArray(geometry.coordinates)
+  ) {
+    // GeoJSON MultiLineString: an array of route segments.
+    coordinates = geometry.coordinates.flatMap((segment) =>
+      Array.isArray(segment)
+        ? segment.filter(isCoordinate)
+        : []
+    );
+  } else {
+    console.error("Unsupported Geoapify geometry:", geometry?.type);
+
+    throw new Error(
+      "The routing provider returned an unsupported route geometry."
+    );
+  }
+
+  if (coordinates.length < 2) {
+    throw new Error("The routing provider returned invalid route coordinates.");
   }
 
   return {
-    distanceMeters: route.distance,
-    durationSeconds: route.duration,
+    distanceMeters: distance,
+    durationSeconds: duration,
     geometry: {
       type: "LineString",
-      coordinates: geometryCoordinates,
+      coordinates,
     },
   };
 }
