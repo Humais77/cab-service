@@ -117,54 +117,54 @@ export async function POST(request: Request) {
       );
     }
   }
-  
-let selectedVehicle;
-let selectedService;
 
-try {
-  const [vehicles, services] = await Promise.all([
-    db.orm.public.Vehicle.all(),
-    db.orm.public.ServiceType.all(),
-  ]);
+  let selectedVehicle;
+  let selectedService;
 
-  selectedVehicle = vehicles.find(
-    (item) => item.active && item.name === data.vehicleName,
-  );
+  try {
+    const [vehicles, services] = await Promise.all([
+      db.orm.public.Vehicle.all(),
+      db.orm.public.ServiceType.all(),
+    ]);
 
-  selectedService = services.find(
-    (item) => item.active && item.name === data.serviceType,
-  );
-} catch (error) {
-  console.error("Booking option validation failed:", error);
+    selectedVehicle = vehicles.find(
+      (item) => item.active && item.name === data.vehicleName,
+    );
 
-  return NextResponse.json(
-    { error: "Unable to validate your selected vehicle and service." },
-    { status: 500 },
-  );
-}
+    selectedService = services.find(
+      (item) => item.active && item.name === data.serviceType,
+    );
+  } catch (error) {
+    console.error("Booking option validation failed:", error);
 
-if (!selectedVehicle) {
-  return NextResponse.json(
-    { error: "This vehicle is unavailable. Please select another vehicle." },
-    { status: 400 },
-  );
-}
+    return NextResponse.json(
+      { error: "Unable to validate your selected vehicle and service." },
+      { status: 500 },
+    );
+  }
 
-if (data.passengerCount > selectedVehicle.capacity) {
-  return NextResponse.json(
-    {
-      error: `${selectedVehicle.name} can carry a maximum of ${selectedVehicle.capacity} passengers.`,
-    },
-    { status: 400 },
-  );
-}
+  if (!selectedVehicle) {
+    return NextResponse.json(
+      { error: "This vehicle is unavailable. Please select another vehicle." },
+      { status: 400 },
+    );
+  }
 
-if (!selectedService) {
-  return NextResponse.json(
-    { error: "This service is unavailable. Please select another service." },
-    { status: 400 },
-  );
-}
+  if (data.passengerCount > selectedVehicle.capacity) {
+    return NextResponse.json(
+      {
+        error: `${selectedVehicle.name} can carry a maximum of ${selectedVehicle.capacity} passengers.`,
+      },
+      { status: 400 },
+    );
+  }
+
+  if (!selectedService) {
+    return NextResponse.json(
+      { error: "This service is unavailable. Please select another service." },
+      { status: 400 },
+    );
+  }
 
 
   let route: Awaited<ReturnType<typeof getDrivingRoute>>;
@@ -196,12 +196,18 @@ if (!selectedService) {
   let fare: ReturnType<typeof calculateFareCents>;
 
   try {
-    fare = calculateFareCents(route.distanceMeters, data.tripType);
+    fare = calculateFareCents(
+      route.distanceMeters,
+      route.durationSeconds,
+      data.tripType,
+    );
   } catch (error) {
     console.error("Fare calculation failed:", error);
 
     return NextResponse.json(
-      { error: "We could not calculate the booking price. Please contact us." },
+      {
+        error: "We could not calculate the booking price. Please contact us.",
+      },
       { status: 500 },
     );
   }
