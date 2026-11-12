@@ -6,7 +6,7 @@ const PHONE_DISPLAY = "(02) 0000 0000";
 export default function CabHero() {
   return (
     <section
-      className="relative isolate flex min-h-[760px] items-center justify-center overflow-hidden bg-[#101722] text-white sm:min-h-[820px] lg:min-h-[850px]"
+      className="relative isolate flex min-h-[760px] sm:min-h-[820px] lg:min-h-[850px] items-center justify-center overflow-hidden bg-[#101722] text-white "
       aria-labelledby="hero-title"
     >
       <div aria-hidden="true" className="absolute inset-0 -z-20 scale-[1.02] bg-[url('/Hero.png')] bg-cover bg-center" />
