@@ -85,6 +85,7 @@ export default function BookingBar() {
   const [optionsError, setOptionsError] = useState("");
   const [passengerCount, setPassengerCount] = useState("1");
 
+
   const [estimate, setEstimate] = useState<{
     loading: boolean;
     cents: number | null;
@@ -103,6 +104,9 @@ export default function BookingBar() {
   const selectedVehicle = vehicleOptions.find(
     (item) => item.name === vehicle,
   );
+
+  const isParcelDelivery =
+    selectedVehicle?.name.trim().toLowerCase() === "parcel delivery";
 
   const maxPassengers = selectedVehicle?.capacity ?? 0;
 
@@ -220,13 +224,25 @@ export default function BookingBar() {
   }, []);
 
   useEffect(() => {
-    if (!selectedVehicle) return;
+    if (!selectedVehicle) {
+      setPassengerCount("1");
+      return;
+    }
 
-    setPassengerCount((current) =>
-      Number(current) > selectedVehicle.capacity
-        ? String(selectedVehicle.capacity)
-        : current,
-    );
+    if (selectedVehicle.name.trim().toLowerCase() === "parcel delivery") {
+      setPassengerCount("0");
+      return;
+    }
+
+    setPassengerCount((current) => {
+      const count = Number(current);
+
+      if (count < 1 || count > selectedVehicle.capacity) {
+        return "1";
+      }
+
+      return current;
+    });
   }, [selectedVehicle]);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -305,15 +321,27 @@ export default function BookingBar() {
       setNotice("Please enter a valid email address.");
       return;
     }
+    const isSelectedParcelDelivery =
+      selectedVehicle?.name.trim().toLowerCase() === "parcel delivery";
 
-    if (
-      !selectedVehicle ||
-      !selectedVehicle.capacity ||
+    if (!selectedVehicle) {
+      setShowOptions(true);
+      setNotice("Please select a valid vehicle.");
+      return;
+    }
+
+    if (isSelectedParcelDelivery) {
+      if (passengers !== 0) {
+        setShowOptions(true);
+        setNotice("Parcel Delivery does not allow passengers.");
+        return;
+      }
+    } else if (
       passengers < 1 ||
       passengers > selectedVehicle.capacity
     ) {
       setShowOptions(true);
-      setNotice("Please select a valid vehicle and passenger count.");
+      setNotice("Please select a valid passenger count.");
       return;
     }
 
@@ -400,7 +428,7 @@ export default function BookingBar() {
   return (
     <section
       id="booking"
-    className="relative z-20 -mt-36 w-full scroll-mt-24 px-4 pb-12 sm:-mt-40 sm:px-6 sm:pb-16 lg:-mt-44 lg:px-8"
+      className="relative z-20 -mt-36 w-full scroll-mt-24 px-4 pb-12 sm:-mt-40 sm:px-6 sm:pb-16 lg:-mt-44 lg:px-8"
     >
       <div className="mx-auto max-w-[1320px] overflow-visible rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-[0_20px_60px_rgba(0,0,0,0.12)] sm:rounded-3xl">
         {/* Header */}
@@ -432,11 +460,10 @@ export default function BookingBar() {
                     setNotice("");
                   }}
                   aria-pressed={tripType === type}
-                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${
-                    tripType === type
-                      ? "bg-[#1674e8] text-white shadow-md"
-                      : "text-slate-700 hover:bg-white hover:text-slate-900"
-                  }`}
+                  className={`rounded-lg px-4 py-2.5 text-sm font-semibold transition ${tripType === type
+                    ? "bg-[#1674e8] text-white shadow-md"
+                    : "text-slate-700 hover:bg-white hover:text-slate-900"
+                    }`}
                 >
                   {type}
                 </button>
@@ -594,43 +621,49 @@ export default function BookingBar() {
 
                     {vehicleOptions.map((item) => (
                       <option key={item.id} value={item.name}>
-                        {item.name} — up to {item.capacity} passengers
+                        {item.name} — {
+                          item.name.trim().toLowerCase() === "parcel delivery"
+                            ? "Fits in a car"
+                            : `Up to ${item.capacity} passengers`
+                        }
                       </option>
                     ))}
                   </select>
                 </div>
 
-                <div>
-                  <label htmlFor="passengers" className={labelClass}>
-                    <Users className="mr-2 inline h-4 w-4 text-blue-600" />
-                    Passengers
-                  </label>
+               {!isParcelDelivery && (
+  <div>
+    <label htmlFor="passengers" className={labelClass}>
+      <Users className="mr-2 inline h-4 w-4 text-blue-600" />
+      Passengers
+    </label>
 
-                  <select
-                    id="passengers"
-                    name="passengers"
-                    value={passengerCount}
-                    onChange={(event) => setPassengerCount(event.target.value)}
-                    required={showOptions}
-                    disabled={!selectedVehicle}
-                    className={inputClass}
-                  >
-                    {Array.from(
-                      { length: maxPassengers },
-                      (_, index) => index + 1,
-                    ).map((count) => (
-                      <option key={count} value={count}>
-                        {count} {count === 1 ? "passenger" : "passengers"}
-                      </option>
-                    ))}
-                  </select>
+    <select
+      id="passengers"
+      name="passengers"
+      value={passengerCount}
+      onChange={(event) => setPassengerCount(event.target.value)}
+      required={showOptions}
+      disabled={!selectedVehicle}
+      className={inputClass}
+    >
+      {Array.from(
+        { length: maxPassengers },
+        (_, index) => index + 1,
+      ).map((count) => (
+        <option key={count} value={count}>
+          {count} {count === 1 ? "passenger" : "passengers"}
+        </option>
+      ))}
+    </select>
 
-                  {selectedVehicle && (
-                    <p className="mt-1 text-xs text-slate-600">
-                      Maximum capacity: {selectedVehicle.capacity} passengers
-                    </p>
-                  )}
-                </div>
+    {selectedVehicle && (
+      <p className="mt-1 text-xs text-slate-600">
+        Maximum capacity: {selectedVehicle.capacity} passengers
+      </p>
+    )}
+  </div>
+)}
 
                 <div>
                   <label htmlFor="service" className={labelClass}>
@@ -741,11 +774,10 @@ export default function BookingBar() {
                 </legend>
 
                 <label
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
-                    paymentMethod === "PAY_DRIVER"
-                      ? "border-blue-300 bg-blue-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${paymentMethod === "PAY_DRIVER"
+                    ? "border-blue-300 bg-blue-50"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
                 >
                   <input
                     type="radio"
@@ -776,11 +808,10 @@ export default function BookingBar() {
                 </label>
 
                 <label
-                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${
-                    paymentMethod === "STRIPE"
-                      ? "border-blue-300 bg-blue-50"
-                      : "border-slate-200 bg-white hover:border-slate-300"
-                  }`}
+                  className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition ${paymentMethod === "STRIPE"
+                    ? "border-blue-300 bg-blue-50"
+                    : "border-slate-200 bg-white hover:border-slate-300"
+                    }`}
                 >
                   <input
                     type="radio"
@@ -816,38 +847,38 @@ export default function BookingBar() {
           {(estimate.cents != null ||
             estimate.loading ||
             estimate.error) && (
-            <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3.5">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
-                    Estimated fare
+              <div className="rounded-xl border border-blue-200 bg-blue-50 px-4 py-3.5">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
+                      Estimated fare
+                    </p>
+
+                    {estimate.loading && (
+                      <p className="mt-1 text-sm text-slate-700">
+                        Calculating fare…
+                      </p>
+                    )}
+
+                    {estimate.error && (
+                      <p className="mt-1 text-sm text-red-700">
+                        {estimate.error}
+                      </p>
+                    )}
+
+                    {estimate.cents != null && !estimate.loading && (
+                      <p className="mt-1 text-2xl font-bold text-slate-900">
+                        {formatAUD(estimate.cents)}
+                      </p>
+                    )}
+                  </div>
+
+                  <p className="max-w-[220px] text-xs leading-5 text-slate-600">
+                    Final fare may vary with tolls, waiting time and extras.
                   </p>
-
-                  {estimate.loading && (
-                    <p className="mt-1 text-sm text-slate-700">
-                      Calculating fare…
-                    </p>
-                  )}
-
-                  {estimate.error && (
-                    <p className="mt-1 text-sm text-red-700">
-                      {estimate.error}
-                    </p>
-                  )}
-
-                  {estimate.cents != null && !estimate.loading && (
-                    <p className="mt-1 text-2xl font-bold text-slate-900">
-                      {formatAUD(estimate.cents)}
-                    </p>
-                  )}
                 </div>
-
-                <p className="max-w-[220px] text-xs leading-5 text-slate-600">
-                  Final fare may vary with tolls, waiting time and extras.
-                </p>
               </div>
-            </div>
-          )}
+            )}
 
           {/* Feedback */}
           {notice && (

@@ -33,7 +33,7 @@ const bookingSchema = z.object({
   returnTime: z.string().max(20).optional(),
 
   vehicleName: z.string().trim().min(1).max(100),
-  passengerCount: z.coerce.number().int().min(1).max(13),
+  passengerCount: z.coerce.number().int().min(0).max(13),
   serviceType: z.string().trim().min(1).max(100),
   specialInstructions: z.string().trim().max(2000).optional(),
   paymentMethod: z.enum(["STRIPE", "PAY_DRIVER"]).default("PAY_DRIVER"),
@@ -150,14 +150,31 @@ export async function POST(request: Request) {
     );
   }
 
-  if (data.passengerCount > selectedVehicle.capacity) {
-    return NextResponse.json(
-      {
-        error: `${selectedVehicle.name} can carry a maximum of ${selectedVehicle.capacity} passengers.`,
-      },
-      { status: 400 },
-    );
-  }
+ const isParcelDelivery =
+  selectedVehicle.name.toLowerCase() === "parcel delivery";
+
+if (isParcelDelivery && data.passengerCount !== 0) {
+  return NextResponse.json(
+    { error: "Parcel Delivery does not allow passengers." },
+    { status: 400 },
+  );
+}
+
+if (!isParcelDelivery && data.passengerCount < 1) {
+  return NextResponse.json(
+    { error: "Please select at least one passenger." },
+    { status: 400 },
+  );
+}
+
+if (!isParcelDelivery && data.passengerCount > selectedVehicle.capacity) {
+  return NextResponse.json(
+    {
+      error: `${selectedVehicle.name} can carry a maximum of ${selectedVehicle.capacity} passengers.`,
+    },
+    { status: 400 },
+  );
+}
 
   if (!selectedService) {
     return NextResponse.json(
