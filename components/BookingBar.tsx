@@ -400,7 +400,7 @@ export default function BookingBar() {
   return (
     <section
       id="booking"
-      className="relative z-20 -mt-24 w-full scroll-mt-24 px-4 pb-12 sm:-mt-28 sm:px-6 sm:pb-16 lg:-mt-32 lg:px-8"
+    className="relative z-20 -mt-36 w-full scroll-mt-24 px-4 pb-12 sm:-mt-40 sm:px-6 sm:pb-16 lg:-mt-44 lg:px-8"
     >
       <div className="mx-auto max-w-[1320px] overflow-visible rounded-2xl border border-slate-200 bg-white text-slate-900 shadow-[0_20px_60px_rgba(0,0,0,0.12)] sm:rounded-3xl">
         {/* Header */}

@@ -13,7 +13,7 @@ export default function CabHero() {
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-b from-black/60 via-black/25 to-[#101722]/85" />
       <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-black/45 via-transparent to-black/20" />
 
-      <div className="mx-auto flex w-full max-w-[1440px] flex-col items-center px-5 pb-36 pt-28 text-center sm:px-8 sm:pb-40 sm:pt-32 lg:px-12 lg:pb-44 lg:pt-32">
+      <div className="mx-auto flex w-full max-w-[1440px] flex-col items-center px-5 pb-36 pt-10 text-center sm:px-8 sm:pb-40 sm:pt-20 lg:px-12 lg:pb-44 lg:pt-20">
         <div className="mb-6 inline-flex items-center gap-2.5 rounded-full border border-white/25 bg-white/10 px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.22em] text-white/90 backdrop-blur-md sm:text-xs">
           <span className="h-2 w-2 rounded-full bg-sky-400" />
           Sydney&apos;s reliable cab service · 24/7

@@ -8,7 +8,10 @@ import {
   ChevronUp,
   MapPin,
   Navigation,
+  MousePointerClick,
+  Loader2,
 } from "lucide-react";
+
 import {
   MapContainer,
   Marker,
@@ -16,7 +19,9 @@ import {
   Popup,
   TileLayer,
   useMap,
+  useMapEvents,
 } from "react-leaflet";
+
 import L, { type LatLngBoundsExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -51,6 +56,30 @@ type RouteResponse = {
 type RoutePlannerProps = {
   onChange: (selection: RouteSelection) => void;
 };
+
+type MapPickTarget = "pickup" | "destination" | null;
+
+type MapClickPickerProps = {
+  enabled: boolean;
+  onSelect: (lat: number, lon: number) => void;
+};
+
+// Detect clicks on the map.
+// This component MUST be rendered inside MapContainer.
+function MapClickPicker({
+  enabled,
+  onSelect,
+}: MapClickPickerProps) {
+  useMapEvents({
+    click(event) {
+      if (!enabled) return;
+
+      onSelect(event.latlng.lat, event.latlng.lng);
+    },
+  });
+
+  return null;
+}
 
 const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 
@@ -91,7 +120,7 @@ function FitRoute({ points }: { points: [number, number][] }) {
 
   useEffect(() => {
     if (points.length === 1) {
-      map.setView(points[0], 13);
+      map.setView(points[0], 15);
     } else if (points.length > 1) {
       const bounds: LatLngBoundsExpression = points;
 
@@ -155,7 +184,7 @@ function LocationField({
       try {
         const response = await fetch(
           `/api/locations?q=${encodeURIComponent(cleaned)}`,
-          { signal: controller.signal },
+          { signal: controller.signal }
         );
 
         const result = await response.json();
@@ -165,7 +194,9 @@ function LocationField({
         }
 
         setSuggestions(
-          Array.isArray(result.suggestions) ? result.suggestions : [],
+          Array.isArray(result.suggestions)
+            ? result.suggestions
+            : []
         );
       } catch (searchError) {
         if (controller.signal.aborted) return;
@@ -274,11 +305,79 @@ function LocationField({
 export default function RoutePlanner({ onChange }: RoutePlannerProps) {
   const [pickup, setPickup] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
+
   const [route, setRoute] = useState<RouteResponse | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
   const [routeError, setRouteError] = useState("");
+
   const [showMap, setShowMap] = useState(false);
 
+  const [mapPickTarget, setMapPickTarget] =
+    useState<MapPickTarget>(null);
+
+  const [isResolvingClick, setIsResolvingClick] = useState(false);
+  const [mapPickError, setMapPickError] = useState("");
+
+  // Activate pickup or destination selection mode.
+  function startMapSelection(target: Exclude<MapPickTarget, null>) {
+    setMapPickTarget(target);
+    setMapPickError("");
+    setShowMap(true);
+  }
+
+  // Reverse geocode the coordinates selected by the user.
+  async function selectMapLocation(lat: number, lon: number) {
+    if (!mapPickTarget || isResolvingClick) return;
+
+    const selectedTarget = mapPickTarget;
+
+    setIsResolvingClick(true);
+    setMapPickError("");
+
+    try {
+      const response = await fetch(
+        `/api/reverse-geocode?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`
+      );
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(
+          data.error || "Could not resolve this location."
+        );
+      }
+
+      // IMPORTANT:
+      // Use the same Location structure as autocomplete.
+      // Keep the exact coordinates clicked by the customer.
+      const location: Location = {
+        address: data.address,
+        latitude: lat,
+        longitude: lon,
+      };
+
+      if (selectedTarget === "pickup") {
+        setPickup(location);
+      } else {
+        setDestination(location);
+      }
+
+      setMapPickTarget(null);
+      setMapPickError("");
+    } catch (error) {
+      console.error("Map location selection error:", error);
+
+      setMapPickError(
+        error instanceof Error
+          ? error.message
+          : "Could not select this location. Please try again."
+      );
+    } finally {
+      setIsResolvingClick(false);
+    }
+  }
+
+  // Calculate the route whenever both locations are selected.
   useEffect(() => {
     if (!pickup || !destination) {
       setRoute(null);
@@ -324,7 +423,9 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(result.error || "Route calculation failed.");
+          throw new Error(
+            result.error || "Route calculation failed."
+          );
         }
 
         const calculatedRoute = result as RouteResponse;
@@ -345,7 +446,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         setRouteError(
           error instanceof Error
             ? error.message
-            : "Could not calculate the driving route.",
+            : "Could not calculate the driving route."
         );
 
         onChange({
@@ -369,7 +470,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
   const routePositions = useMemo<[number, number][]>(() => {
     return (route?.geometry.coordinates ?? []).map(
-      ([longitude, latitude]) => [latitude, longitude],
+      ([longitude, latitude]) => [latitude, longitude]
     );
   }, [route]);
 
@@ -391,7 +492,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
   return (
     <div className="space-y-4">
-      {/* Main route fields */}
+      {/* Pickup and destination fields */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <LocationField
           label="Pickup location"
@@ -416,6 +517,75 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         />
       </div>
 
+      {/* Map selection controls */}
+      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3">
+        <div className="flex items-start gap-2">
+          <MousePointerClick className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-slate-900">
+              Select a location directly on the map
+            </p>
+
+            <p className="mt-1 text-xs leading-5 text-slate-600">
+              Choose pickup or drop-off, then click the desired location
+              on the map to fill its address automatically.
+            </p>
+          </div>
+        </div>
+
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <button
+            type="button"
+            onClick={() => startMapSelection("pickup")}
+            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+              mapPickTarget === "pickup"
+                ? "border-blue-600 bg-blue-600 text-white"
+                : "border-blue-200 bg-white text-blue-800 hover:bg-blue-100"
+            }`}
+          >
+            <MapPin className="h-4 w-4" />
+            Set pickup on map
+          </button>
+
+          <button
+            type="button"
+            onClick={() => startMapSelection("destination")}
+            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
+              mapPickTarget === "destination"
+                ? "border-red-600 bg-red-600 text-white"
+                : "border-red-200 bg-white text-red-800 hover:bg-red-50"
+            }`}
+          >
+            <MapPin className="h-4 w-4" />
+            Set drop-off on map
+          </button>
+        </div>
+
+        {mapPickTarget && (
+          <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm font-medium text-blue-800">
+            Click anywhere on the map to select your{" "}
+            {mapPickTarget === "pickup" ? "pickup" : "drop-off"} location.
+          </p>
+        )}
+
+        {isResolvingClick && (
+          <p className="mt-3 flex items-center gap-2 text-sm text-blue-800">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Finding the selected address...
+          </p>
+        )}
+
+        {mapPickError && (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
+          >
+            {mapPickError}
+          </p>
+        )}
+      </div>
+
       {/* Route status and map toggle */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
@@ -425,11 +595,11 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
           <span aria-live="polite">
             {routeLoading
-              ? "Calculating your driving route…"
+              ? "Calculating your driving route..."
               : route
                 ? "Your driving route is ready."
                 : hasBothLocations
-                  ? "Preparing your driving route…"
+                  ? "Preparing your driving route..."
                   : "Enter both locations to calculate your route."}
           </span>
         </div>
@@ -452,7 +622,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         </button>
       </div>
 
-      {/* Map is mounted only when the user opens it */}
+      {/* Interactive map */}
       {showMap && (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-1">
           <MapContainer
@@ -467,6 +637,14 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
+            {/* Map click handler MUST be inside MapContainer */}
+            <MapClickPicker
+              enabled={
+                mapPickTarget !== null && !isResolvingClick
+              }
+              onSelect={selectMapLocation}
+            />
+
             {pickup && (
               <Marker
                 position={[pickup.latitude, pickup.longitude]}
@@ -478,7 +656,10 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
             {destination && (
               <Marker
-                position={[destination.latitude, destination.longitude]}
+                position={[
+                  destination.latitude,
+                  destination.longitude,
+                ]}
                 icon={destinationIcon}
               >
                 <Popup>Destination: {destination.address}</Popup>
@@ -506,8 +687,8 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
           </MapContainer>
 
           <p className="px-3 py-2 text-xs leading-5 text-slate-600">
-            Map data © OpenStreetMap contributors. Travel times are estimates
-            and do not include live traffic.
+            Map data © OpenStreetMap contributors. Travel times are
+            estimates and do not include live traffic.
           </p>
         </div>
       )}

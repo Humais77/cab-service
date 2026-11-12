@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { calculateFareCents } from "@/src/lib/fare";
 
-
 const quoteSchema = z.object({
   distanceMeters: z.number().finite().min(0).max(500_000),
   durationSeconds: z.number().finite().min(0).max(86_400),
@@ -35,6 +34,7 @@ export async function POST(request: Request) {
   try {
     const fare = calculateFareCents(
       parsed.data.distanceMeters,
+      parsed.data.durationSeconds,
       parsed.data.tripType,
     );
 
@@ -42,6 +42,7 @@ export async function POST(request: Request) {
       fareCents: fare.amountCents,
       currency: fare.currency,
       distanceKm: fare.distanceKm,
+      durationMinutes: fare.durationMinutes,
     });
   } catch (error) {
     console.error("Quote calculation failed:", error);

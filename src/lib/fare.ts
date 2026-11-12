@@ -3,6 +3,7 @@ export type FareResult = {
   amountCents: number;
   currency: "AUD";
   distanceKm: number;
+  durationMinutes: number;
 };
 
 function getPositiveIntegerEnv(name: string, fallback: number): number {
@@ -23,13 +24,17 @@ function getPositiveIntegerEnv(name: string, fallback: number): number {
 
 export function calculateFareCents(
   distanceMeters: number,
+  durationSeconds: number,
   tripType: "One way" | "Return",
 ): FareResult {
   if (!Number.isFinite(distanceMeters) || distanceMeters < 0) {
     throw new Error("Invalid route distance.");
   }
 
-  // All amounts are in AUD cents.
+  if (!Number.isFinite(durationSeconds) || durationSeconds < 0) {
+    throw new Error("Invalid journey duration.");
+  }
+
   const baseFareCents = getPositiveIntegerEnv(
     "BOOKING_BASE_FARE_AUD_CENTS",
     400,
@@ -40,16 +45,28 @@ export function calculateFareCents(
     350,
   );
 
+  const perMinuteCents = getPositiveIntegerEnv(
+    "BOOKING_PER_MINUTE_AUD_CENTS",
+    50,
+  );
+
   const minimumFareCents = getPositiveIntegerEnv(
     "BOOKING_MIN_FARE_AUD_CENTS",
     800,
   );
 
   const distanceKm = distanceMeters / 1000;
-  const billableKm = distanceKm * (tripType === "Return" ? 2 : 1);
+  const durationMinutes = durationSeconds / 60;
+
+  const multiplier = tripType === "Return" ? 2 : 1;
+
+  const billableKm = distanceKm * multiplier;
+  const billableMinutes = durationMinutes * multiplier;
 
   const calculatedFare = Math.ceil(
-    baseFareCents + billableKm * perKmCents,
+    baseFareCents +
+      billableKm * perKmCents +
+      billableMinutes * perMinuteCents,
   );
 
   const amountCents = Math.max(minimumFareCents, calculatedFare);
@@ -62,5 +79,6 @@ export function calculateFareCents(
     amountCents,
     currency: "AUD",
     distanceKm,
+    durationMinutes,
   };
 }

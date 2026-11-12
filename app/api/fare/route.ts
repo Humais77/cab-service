@@ -1,9 +1,9 @@
+
 import { NextResponse } from "next/server";
 import { z } from "zod";
 
 import { getDrivingRoute } from "@/src/routing";
 import { calculateFareCents } from "@/src/lib/fare";
-
 
 const schema = z.object({
   pickup: z.object({
@@ -33,7 +33,10 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Valid pickup, destination and trip type are required." },
+      {
+        error:
+          "Valid pickup, destination and trip type are required.",
+      },
       { status: 400 },
     );
   }
@@ -42,7 +45,12 @@ export async function POST(request: Request) {
     const { pickup, destination, tripType } = parsed.data;
 
     const route = await getDrivingRoute(pickup, destination);
-    const fare = calculateFareCents(route.distanceMeters, tripType);
+
+    const fare = calculateFareCents(
+      route.distanceMeters,
+      route.durationSeconds,
+      tripType,
+    );
 
     return NextResponse.json({
       ...fare,
@@ -52,7 +60,10 @@ export async function POST(request: Request) {
     console.error("Fare preview error:", error);
 
     return NextResponse.json(
-      { error: "Unable to calculate the fare for this route. Please try again." },
+      {
+        error:
+          "Unable to calculate the fare for this route. Please try again.",
+      },
       { status: 502 },
     );
   }
