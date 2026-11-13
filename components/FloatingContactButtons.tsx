@@ -1,6 +1,8 @@
+
 "use client";
 
-import { MessageCircle, Phone, X } from "lucide-react";
+import { Phone } from "lucide-react";
+import { FaWhatsapp } from "react-icons/fa";
 import { useState } from "react";
 
 const PHONE_NUMBER = "+61400000000"; // Replace with your actual phone number
@@ -12,8 +14,24 @@ export default function FloatingContactButtons() {
     "Hello! I would like to enquire about your cab service."
   );
 
+  const whatsappNumber = PHONE_NUMBER.replace(/\D/g, "");
+
   return (
     <div className="fixed bottom-6 right-5 z-[9999] flex flex-col items-end gap-3 sm:bottom-8 sm:right-8">
+
+      {/* WhatsApp Button */}
+      <a
+        href={`https://wa.me/${whatsappNumber}?text=${whatsappMessage}`}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Chat with us on WhatsApp"
+        className="group flex h-14 w-14 items-center justify-center rounded-full bg-[#25D366] text-white shadow-lg transition-all duration-300 hover:scale-110 hover:bg-[#20BA5A] hover:shadow-xl active:scale-95"
+      >
+        <FaWhatsapp
+          size={29}
+          className="transition-transform duration-300 group-hover:rotate-[-10deg]"
+        />
+      </a>
 
       {/* Phone Button */}
       <div
@@ -21,7 +39,7 @@ export default function FloatingContactButtons() {
         onMouseEnter={() => setPhoneHovered(true)}
         onMouseLeave={() => setPhoneHovered(false)}
       >
-        {/* Phone Number — visible on hover */}
+        {/* Phone Number Tooltip */}
         <div
           className={`absolute right-[calc(100%+12px)] whitespace-nowrap rounded-xl bg-white px-4 py-3 text-sm font-semibold text-gray-800 shadow-lg transition-all duration-300 ${
             phoneHovered
@@ -39,7 +57,7 @@ export default function FloatingContactButtons() {
             {PHONE_NUMBER}
           </a>
 
-          {/* Tooltip arrow */}
+          {/* Tooltip Arrow */}
           <span className="absolute right-[-5px] top-1/2 h-3 w-3 -translate-y-1/2 rotate-45 bg-white" />
         </div>
 

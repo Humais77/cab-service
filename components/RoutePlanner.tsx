@@ -1,14 +1,13 @@
 
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Map as MapIcon,
   ChevronDown,
   ChevronUp,
   MapPin,
   Navigation,
-  MousePointerClick,
   Loader2,
 } from "lucide-react";
 
@@ -53,28 +52,24 @@ type RouteResponse = {
   geometry: RouteGeometry;
 };
 
+type MapPickTarget = "pickup" | "destination" | null;
+
 type RoutePlannerProps = {
   onChange: (selection: RouteSelection) => void;
+  children?: ReactNode;
 };
-
-type MapPickTarget = "pickup" | "destination" | null;
 
 type MapClickPickerProps = {
   enabled: boolean;
   onSelect: (lat: number, lon: number) => void;
 };
 
-// Detect clicks on the map.
-// This component MUST be rendered inside MapContainer.
-function MapClickPicker({
-  enabled,
-  onSelect,
-}: MapClickPickerProps) {
+function MapClickPicker({ enabled, onSelect }: MapClickPickerProps) {
   useMapEvents({
     click(event) {
-      if (!enabled) return;
-
-      onSelect(event.latlng.lat, event.latlng.lng);
+      if (enabled) {
+        onSelect(event.latlng.lat, event.latlng.lng);
+      }
     },
   });
 
@@ -85,32 +80,14 @@ const DEFAULT_CENTER: [number, number] = [-33.8688, 151.2093];
 
 const pickupIcon = L.divIcon({
   className: "",
-  html: `
-    <div style="
-      width:18px;
-      height:18px;
-      border:3px solid white;
-      border-radius:50%;
-      background:#2563eb;
-      box-shadow:0 1px 5px #555;
-    "></div>
-  `,
+  html: `<div style="width:18px;height:18px;border:3px solid white;border-radius:50%;background:#2563eb;box-shadow:0 1px 5px #555;"></div>`,
   iconSize: [18, 18],
   iconAnchor: [9, 9],
 });
 
 const destinationIcon = L.divIcon({
   className: "",
-  html: `
-    <div style="
-      width:18px;
-      height:18px;
-      border:3px solid white;
-      border-radius:50%;
-      background:#dc2626;
-      box-shadow:0 1px 5px #555;
-    "></div>
-  `,
+  html: `<div style="width:18px;height:18px;border:3px solid white;border-radius:50%;background:#dc2626;box-shadow:0 1px 5px #555;"></div>`,
   iconSize: [18, 18],
   iconAnchor: [9, 9],
 });
@@ -194,15 +171,12 @@ function LocationField({
         }
 
         setSuggestions(
-          Array.isArray(result.suggestions)
-            ? result.suggestions
-            : []
+          Array.isArray(result.suggestions) ? result.suggestions : []
         );
       } catch (searchError) {
         if (controller.signal.aborted) return;
 
         console.error("Location autocomplete error:", searchError);
-
         setSuggestions([]);
         setError("Could not search locations. Please try again.");
       } finally {
@@ -220,14 +194,14 @@ function LocationField({
 
   return (
     <div className="relative min-w-0">
-      <label className="mb-2 block text-sm font-semibold text-slate-800">
+      <label className="mb-1.5 block text-xs font-semibold text-slate-800 sm:text-sm">
         {label}
       </label>
 
       <div className="relative">
         <MapPin
           aria-hidden="true"
-          className="pointer-events-none absolute left-3.5 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-500"
+          className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-500"
         />
 
         <input
@@ -247,18 +221,16 @@ function LocationField({
           autoComplete="off"
           aria-label={label}
           aria-autocomplete="list"
-          className="min-h-[48px] w-full rounded-lg border border-slate-300 bg-white py-3.5 pl-11 pr-3 text-base text-slate-900 outline-none transition placeholder:text-slate-500 hover:border-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15"
+          className="min-h-[48px] w-full min-w-0 rounded-lg border border-slate-300 bg-white py-3 pl-9 pr-2 text-xs text-slate-900 outline-none transition placeholder:text-slate-500 hover:border-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/15 sm:text-sm"
         />
       </div>
 
       {loading && (
-        <p className="mt-1.5 text-xs text-slate-600">
-          Searching locations…
-        </p>
+        <p className="mt-1 text-xs text-slate-600">Searching locations...</p>
       )}
 
       {error && (
-        <p role="alert" className="mt-1.5 text-xs text-red-700">
+        <p role="alert" className="mt-1 text-xs text-red-700">
           {error}
         </p>
       )}
@@ -280,7 +252,7 @@ function LocationField({
                   setSuggestions([]);
                   setError("");
                 }}
-                className="w-full border-b border-slate-100 px-4 py-3 text-left text-sm text-slate-800 last:border-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none"
+                className="w-full border-b border-slate-100 px-3 py-3 text-left text-xs text-slate-800 last:border-0 hover:bg-blue-50 focus:bg-blue-50 focus:outline-none sm:text-sm"
               >
                 {suggestion.address}
               </button>
@@ -294,7 +266,7 @@ function LocationField({
         !error &&
         suggestions.length === 0 &&
         query.trim() !== value?.address && (
-          <p className="mt-1.5 text-xs text-slate-600">
+          <p className="mt-1 text-xs text-slate-600">
             No matching locations found in the configured service area.
           </p>
         )}
@@ -302,7 +274,10 @@ function LocationField({
   );
 }
 
-export default function RoutePlanner({ onChange }: RoutePlannerProps) {
+export default function RoutePlanner({
+  onChange,
+  children,
+}: RoutePlannerProps) {
   const [pickup, setPickup] = useState<Location | null>(null);
   const [destination, setDestination] = useState<Location | null>(null);
 
@@ -311,21 +286,17 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
   const [routeError, setRouteError] = useState("");
 
   const [showMap, setShowMap] = useState(false);
-
-  const [mapPickTarget, setMapPickTarget] =
-    useState<MapPickTarget>(null);
+  const [mapPickTarget, setMapPickTarget] = useState<MapPickTarget>(null);
 
   const [isResolvingClick, setIsResolvingClick] = useState(false);
   const [mapPickError, setMapPickError] = useState("");
 
-  // Activate pickup or destination selection mode.
   function startMapSelection(target: Exclude<MapPickTarget, null>) {
     setMapPickTarget(target);
     setMapPickError("");
     setShowMap(true);
   }
 
-  // Reverse geocode the coordinates selected by the user.
   async function selectMapLocation(lat: number, lon: number) {
     if (!mapPickTarget || isResolvingClick) return;
 
@@ -342,14 +313,9 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(
-          data.error || "Could not resolve this location."
-        );
+        throw new Error(data.error || "Could not resolve this location.");
       }
 
-      // IMPORTANT:
-      // Use the same Location structure as autocomplete.
-      // Keep the exact coordinates clicked by the customer.
       const location: Location = {
         address: data.address,
         latitude: lat,
@@ -377,7 +343,6 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
     }
   }
 
-  // Calculate the route whenever both locations are selected.
   useEffect(() => {
     if (!pickup || !destination) {
       setRoute(null);
@@ -423,9 +388,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         const result = await response.json();
 
         if (!response.ok) {
-          throw new Error(
-            result.error || "Route calculation failed."
-          );
+          throw new Error(result.error || "Route calculation failed.");
         }
 
         const calculatedRoute = result as RouteResponse;
@@ -477,13 +440,8 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
   const markerPositions = useMemo<[number, number][]>(() => {
     const points: [number, number][] = [];
 
-    if (pickup) {
-      points.push([pickup.latitude, pickup.longitude]);
-    }
-
-    if (destination) {
-      points.push([destination.latitude, destination.longitude]);
-    }
+    if (pickup) points.push([pickup.latitude, pickup.longitude]);
+    if (destination) points.push([destination.latitude, destination.longitude]);
 
     return points;
   }, [pickup, destination]);
@@ -491,12 +449,12 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
   const hasBothLocations = Boolean(pickup && destination);
 
   return (
-    <div className="space-y-4">
-      {/* Pickup and destination fields */}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+    <div className="space-y-3">
+      {/* Pickup and drop-off fields */}
+      <div className="grid grid-cols-2 gap-2 sm:gap-4">
         <LocationField
           label="Pickup location"
-          placeholder="Where should we pick you up?"
+          placeholder="Enter pickup location"
           value={pickup}
           onSelect={(location) => {
             setPickup(location);
@@ -506,8 +464,8 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         />
 
         <LocationField
-          label="Destination"
-          placeholder="Where are you going?"
+          label="Drop-off location"
+          placeholder="Enter destination"
           value={destination}
           onSelect={(location) => {
             setDestination(location);
@@ -517,131 +475,127 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
         />
       </div>
 
-      {/* Map selection controls */}
-      <div className="rounded-xl border border-blue-200 bg-blue-50/70 p-3">
-        <div className="flex items-start gap-2">
-          <MousePointerClick className="mt-0.5 h-5 w-5 shrink-0 text-blue-700" />
+      {/* BookingBar inserts journey date and time here */}
+      {children}
 
-          <div className="min-w-0 flex-1">
-            <p className="text-sm font-semibold text-slate-900">
-              Select a location directly on the map
-            </p>
-
-            <p className="mt-1 text-xs leading-5 text-slate-600">
-              Choose pickup or drop-off, then click the desired location
-              on the map to fill its address automatically.
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2">
+      {/* Compact map controls - now below date and time */}
+      <div className="flex items-center justify-between gap-2 border-t border-slate-100 pt-3">
+        <div className="flex items-center gap-2">
           <button
             type="button"
+            title="Choose pickup location on map"
+            aria-label="Choose pickup location on map"
+            aria-pressed={mapPickTarget === "pickup"}
             onClick={() => startMapSelection("pickup")}
-            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-              mapPickTarget === "pickup"
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${mapPickTarget === "pickup"
                 ? "border-blue-600 bg-blue-600 text-white"
-                : "border-blue-200 bg-white text-blue-800 hover:bg-blue-100"
-            }`}
+                : "border-slate-200 bg-white text-blue-700 hover:border-blue-400 hover:bg-blue-50"
+              }`}
           >
-            <MapPin className="h-4 w-4" />
-            Set pickup on map
+            <MapPin className="h-5 w-5" />
           </button>
 
           <button
             type="button"
+            title="Choose drop-off location on map"
+            aria-label="Choose drop-off location on map"
+            aria-pressed={mapPickTarget === "destination"}
             onClick={() => startMapSelection("destination")}
-            className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm font-semibold transition ${
-              mapPickTarget === "destination"
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border transition ${mapPickTarget === "destination"
                 ? "border-red-600 bg-red-600 text-white"
-                : "border-red-200 bg-white text-red-800 hover:bg-red-50"
-            }`}
+                : "border-slate-200 bg-white text-red-600 hover:border-red-400 hover:bg-red-50"
+              }`}
           >
-            <MapPin className="h-4 w-4" />
-            Set drop-off on map
+            <Navigation className="h-5 w-5" />
           </button>
-        </div>
-
-        {mapPickTarget && (
-          <p className="mt-3 rounded-lg bg-white px-3 py-2 text-sm font-medium text-blue-800">
-            Click anywhere on the map to select your{" "}
-            {mapPickTarget === "pickup" ? "pickup" : "drop-off"} location.
-          </p>
-        )}
-
-        {isResolvingClick && (
-          <p className="mt-3 flex items-center gap-2 text-sm text-blue-800">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Finding the selected address...
-          </p>
-        )}
-
-        {mapPickError && (
-          <p
-            role="alert"
-            className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700"
-          >
-            {mapPickError}
-          </p>
-        )}
-      </div>
-
-      {/* Route status and map toggle */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2 text-sm text-slate-600">
-          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-50 text-blue-700">
-            <Navigation className="h-4 w-4" />
-          </span>
-
-          <span aria-live="polite">
-            {routeLoading
-              ? "Calculating your driving route..."
-              : route
-                ? "Your driving route is ready."
-                : hasBothLocations
-                  ? "Preparing your driving route..."
-                  : "Enter both locations to calculate your route."}
-          </span>
         </div>
 
         <button
           type="button"
-          onClick={() => setShowMap((current) => !current)}
+          onClick={() => {
+            setShowMap((current) => !current);
+            setMapPickError("");
+          }}
+          aria-label={showMap ? "Hide map" : "Open map"}
+          title={showMap ? "Hide map" : "Open map"}
           aria-expanded={showMap}
-          className="inline-flex min-h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-slate-800 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 focus:outline-none focus:ring-4 focus:ring-blue-500/15"
+          className={`flex h-10 items-center gap-2 rounded-xl border px-3 text-sm font-semibold transition ${showMap
+              ? "border-blue-600 bg-blue-600 text-white"
+              : "border-slate-200 bg-white text-slate-700 hover:border-blue-400 hover:bg-blue-50"
+            }`}
         >
-          <MapIcon className="h-4 w-4 text-blue-700" />
-
-          {showMap ? "Hide map" : "Open map"}
-
+          <MapIcon className="h-4 w-4" />
+          <span className="hidden sm:inline">
+            {showMap ? "Hide map" : "Open map"}
+          </span>
           {showMap ? (
-            <ChevronUp className="h-4 w-4 text-slate-600" />
+            <ChevronUp className="h-4 w-4" />
           ) : (
-            <ChevronDown className="h-4 w-4 text-slate-600" />
+            <ChevronDown className="h-4 w-4" />
           )}
         </button>
       </div>
 
-      {/* Interactive map */}
+      {mapPickTarget && (
+        <div className="flex items-center justify-between gap-2 rounded-lg bg-blue-50 px-3 py-2 text-xs text-blue-800">
+          <span>
+            Tap the map to choose your{" "}
+            {mapPickTarget === "pickup" ? "pickup" : "drop-off"} location.
+          </span>
+          <button
+            type="button"
+            onClick={() => setMapPickTarget(null)}
+            className="shrink-0 font-semibold underline"
+          >
+            Cancel
+          </button>
+        </div>
+      )}
+
+      {isResolvingClick && (
+        <p className="flex items-center gap-2 text-xs text-blue-700">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Finding selected address...
+        </p>
+      )}
+
+      {mapPickError && (
+        <p role="alert" className="text-xs text-red-700">
+          {mapPickError}
+        </p>
+      )}
+
+      {/* Compact route status */}
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+       
+        <span aria-live="polite">
+          {routeLoading
+            ? "Calculating driving route..."
+            : route
+              ? `${(route.distanceMeters / 1000).toFixed(2)} km · ${formatDuration(route.durationSeconds)}`
+              : hasBothLocations
+                ? "Preparing driving route..."
+                : "Enter your pickup and drop-off locations to see the driving distance and estimated time."}
+        </span>
+      </div>
+
+      {/* Map stays hidden until requested */}
       {showMap && (
         <div className="overflow-hidden rounded-xl border border-slate-200 bg-slate-50 p-1">
           <MapContainer
             center={DEFAULT_CENTER}
             zoom={11}
             scrollWheelZoom
-            className="h-[280px] w-full rounded-lg sm:h-[360px]"
-            style={{ height: "360px", width: "100%" }}
+            className="h-[240px] w-full rounded-lg sm:h-[340px]"
+            style={{ height: "280px", width: "100%" }}
           >
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
 
-            {/* Map click handler MUST be inside MapContainer */}
             <MapClickPicker
-              enabled={
-                mapPickTarget !== null && !isResolvingClick
-              }
+              enabled={mapPickTarget !== null && !isResolvingClick}
               onSelect={selectMapLocation}
             />
 
@@ -656,10 +610,7 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
             {destination && (
               <Marker
-                position={[
-                  destination.latitude,
-                  destination.longitude,
-                ]}
+                position={[destination.latitude, destination.longitude]}
                 icon={destinationIcon}
               >
                 <Popup>Destination: {destination.address}</Popup>
@@ -679,16 +630,13 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
 
             <FitRoute
               points={
-                routePositions.length > 0
-                  ? routePositions
-                  : markerPositions
+                routePositions.length > 0 ? routePositions : markerPositions
               }
             />
           </MapContainer>
 
-          <p className="px-3 py-2 text-xs leading-5 text-slate-600">
-            Map data © OpenStreetMap contributors. Travel times are
-            estimates and do not include live traffic.
+          <p className="px-2 py-1.5 text-[10px] text-slate-500">
+            Map data © OpenStreetMap contributors.
           </p>
         </div>
       )}
@@ -696,31 +644,28 @@ export default function RoutePlanner({ onChange }: RoutePlannerProps) {
       {routeError && (
         <p
           role="alert"
-          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-700"
+          className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700"
         >
           {routeError}
         </p>
       )}
 
-      {/* Route summary */}
       {route && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-          <div className="rounded-xl border border-blue-200 bg-blue-50 p-3.5 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-blue-800">
-              Driving distance
+        <div className="grid grid-cols-2 gap-2">
+          <div className="rounded-lg border border-blue-100 bg-blue-50 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-blue-700">
+              Distance
             </p>
-
-            <p className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
+            <p className="mt-0.5 text-base font-bold text-slate-900">
               {(route.distanceMeters / 1000).toFixed(2)} km
             </p>
           </div>
 
-          <div className="rounded-xl border border-slate-200 bg-slate-50 p-3.5 sm:p-4">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+          <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">
               Estimated time
             </p>
-
-            <p className="mt-1 text-xl font-bold text-slate-900 sm:text-2xl">
+            <p className="mt-0.5 text-base font-bold text-slate-900">
               {formatDuration(route.durationSeconds)}
             </p>
           </div>

@@ -1,8 +1,8 @@
+
 "use client";
 
 import TransparentHeader from "@/components/TransparentHeader";
 import Hero from "@/components/Hero";
-import BookingBar from "@/components/BookingBar";
 import ServicesShowcase from "@/components/ServicesShowcase";
 
 import AboutSection from "@/components/home/AboutSection";
@@ -22,7 +22,6 @@ export default function Home() {
     <main id="home">
       <TransparentHeader />
       <Hero />
-      <BookingBar />
       <ServicesShowcase />
 
       <AboutSection />
@@ -35,7 +34,6 @@ export default function Home() {
       <CTA />
       <Footer />
 
-      {/* Sticky WhatsApp and Phone Buttons */}
       <FloatingContactButtons />
     </main>
   );
