@@ -13,7 +13,6 @@ import {
   CalendarDays,
   CarFront,
   Users,
-  Settings2,
   LogOut,
   RefreshCw,
   Search,
@@ -57,7 +56,7 @@ type Booking = {
   returnTime?: string | null;
   vehicleName: string;
   passengerCount: number;
-  serviceType: string;
+  luggageCount: number;
   specialInstructions?: string | null;
   status: Status;
   assignedDriverId?: number | null;
@@ -76,13 +75,7 @@ type Vehicle = {
   name: string;
   description?: string | null;
   capacity: number;
-  active: boolean;
-};
-
-type ServiceType = {
-  id: number;
-  name: string;
-  description?: string | null;
+  luggageCapacity: number;
   active: boolean;
 };
 
@@ -121,14 +114,13 @@ type Tab =
   | "payments"
   | "drivers"
   | "vehicles"
-  | "services"
   | "contact";
 
-type ResourceKind = "drivers" | "vehicles" | "services";
+type ResourceKind = "drivers" | "vehicles";
 
 type ResourceFormState = {
   kind: ResourceKind;
-  item?: Driver | Vehicle | ServiceType;
+  item?: Driver | Vehicle;
 };
 
 type ConfirmState = {
@@ -143,7 +135,6 @@ const tabs: { id: Tab; label: string; icon: typeof LayoutDashboard }[] = [
   { id: "bookings", label: "Bookings", icon: CalendarDays },
   { id: "drivers", label: "Drivers", icon: Users },
   { id: "vehicles", label: "Vehicles", icon: CarFront },
-  { id: "services", label: "Service types", icon: Settings2 },
   { id: "payments", label: "Payments", icon: CreditCard },
   { id: "contact", label: "Contact Enquiries", icon: MessageSquare },
 ];
@@ -272,7 +263,7 @@ function Modal({
 }
 
 /* ------------------------------------------------------------------ */
-/* Resource form (drivers / vehicles / services)                       */
+/* Resource form (drivers / vehicles)                                 */
 /* ------------------------------------------------------------------ */
 function ResourceFormModal({
   state,
@@ -290,26 +281,22 @@ function ResourceFormModal({
   const driver = kind === "drivers" ? (item as Driver | undefined) : undefined;
   const vehicle =
     kind === "vehicles" ? (item as Vehicle | undefined) : undefined;
-  const service =
-    kind === "services" ? (item as ServiceType | undefined) : undefined;
-
   const [name, setName] = useState(item?.name ?? "");
   const [phone, setPhone] = useState(driver?.phone ?? "");
   const [capacity, setCapacity] = useState(
     String(vehicle?.capacity ?? 4),
   );
-  const [description, setDescription] = useState(
-    (vehicle?.description ?? service?.description ?? "") || "",
+  const [luggageCapacity, setLuggageCapacity] = useState(
+    String(vehicle?.luggageCapacity ?? 4),
   );
+  const [description, setDescription] = useState(vehicle?.description ?? "");
   const [active, setActive] = useState(item?.active ?? true);
   const [formError, setFormError] = useState("");
 
   const label =
     kind === "drivers"
       ? "Driver"
-      : kind === "vehicles"
-        ? "Vehicle"
-        : "Service type";
+      : "Vehicle";
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -344,10 +331,18 @@ function ResourceFormModal({
         return;
       }
       payload.capacity = value;
-      payload.description = description.trim() || null;
-    }
 
-    if (kind === "services") {
+      const luggageValue = Number(luggageCapacity);
+      if (
+        !Number.isInteger(luggageValue) ||
+        luggageValue < 0 ||
+        luggageValue > 1000
+      ) {
+        setFormError("Luggage capacity must be a whole number between 0 and 1000.");
+        return;
+      }
+
+      payload.luggageCapacity = luggageValue;
       payload.description = description.trim() || null;
     }
 
@@ -429,6 +424,27 @@ function ResourceFormModal({
               required
               className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600"
             />
+          </label>
+        )}
+
+        {kind === "vehicles" && (
+          <label className="block">
+            <span className="mb-1.5 block text-sm font-semibold text-slate-700">
+              Maximum luggage bags <span className="text-red-600">*</span>
+            </span>
+            <input
+              type="number"
+              min={0}
+              max={1000}
+              step={1}
+              value={luggageCapacity}
+              onChange={(event) => setLuggageCapacity(event.target.value)}
+              required
+              className="w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm outline-none focus:border-blue-600"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Customers can select from 0 up to this quantity when booking this vehicle.
+            </p>
           </label>
         )}
 
@@ -529,7 +545,6 @@ export default function AdminDashboardPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [drivers, setDrivers] = useState<Driver[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [services, setServices] = useState<ServiceType[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState("");
@@ -558,14 +573,12 @@ export default function AdminDashboardPage() {
         bookingResponse,
         driverResponse,
         vehicleResponse,
-        serviceResponse,
         paymentResponse,
         contactResponse,
       ] = await Promise.all([
         fetch("/api/admin/bookings", { cache: "no-store" }),
         fetch("/api/admin/resources/drivers", { cache: "no-store" }),
         fetch("/api/admin/resources/vehicles", { cache: "no-store" }),
-        fetch("/api/admin/resources/services", { cache: "no-store" }),
         fetch("/api/admin/payments", { cache: "no-store" }),
         fetch("/api/admin/contact", { cache: "no-store" }),
       ]);
@@ -574,7 +587,6 @@ export default function AdminDashboardPage() {
         bookingResponse,
         driverResponse,
         vehicleResponse,
-        serviceResponse,
         paymentResponse,
         contactResponse,
       ];
@@ -588,7 +600,6 @@ export default function AdminDashboardPage() {
         bookingData,
         driverData,
         vehicleData,
-        serviceData,
         paymentData,
         contactData,
       ] = await Promise.all(responses.map(readJson));
@@ -596,7 +607,6 @@ export default function AdminDashboardPage() {
       setBookings(bookingData.bookings ?? []);
       setDrivers(driverData.items ?? []);
       setVehicles(vehicleData.items ?? []);
-      setServices(serviceData.items ?? []);
       setPayments(paymentData.payments ?? []);
       setContactEnquiries(contactData.enquiries ?? []);
     } catch (err) {
@@ -717,7 +727,7 @@ export default function AdminDashboardPage() {
 
   function openResourceForm(
     kind: ResourceKind,
-    item?: Driver | Vehicle | ServiceType,
+    item?: Driver | Vehicle,
   ) {
     setResourceForm({ kind, item });
   }
@@ -757,7 +767,7 @@ export default function AdminDashboardPage() {
 
   function requestDeleteResource(
     kind: ResourceKind,
-    item: Driver | Vehicle | ServiceType,
+    item: Driver | Vehicle,
   ) {
     setConfirmState({
       title: `Delete ${kind.slice(0, -1)}`,
@@ -818,6 +828,7 @@ export default function AdminDashboardPage() {
       `Time: ${booking.journeyTime}`,
       `Vehicle: ${booking.vehicleName}`,
       `Passengers: ${booking.passengerCount}`,
+      `Luggage: ${booking.luggageCount ?? 0} ${(booking.luggageCount ?? 0) === 1 ? "bag" : "bags"}`,
       booking.specialInstructions
         ? `Instructions: ${booking.specialInstructions}`
         : "",
@@ -1034,7 +1045,7 @@ export default function AdminDashboardPage() {
                   {booking.vehicleName} · {booking.passengerCount} passenger(s)
                 </p>
                 <p className="mt-1 text-xs text-slate-600">
-                  {booking.serviceType}
+                  Luggage: {booking.luggageCount ?? 0} {(booking.luggageCount ?? 0) === 1 ? "bag" : "bags"}
                 </p>
               </div>
             </div>
@@ -1137,18 +1148,14 @@ export default function AdminDashboardPage() {
   /* ---------------- Resource renderer ---------------- */
   function renderResources(
     resource: ResourceKind,
-    items: (Driver | Vehicle | ServiceType)[],
+    items: (Driver | Vehicle)[],
   ) {
     return (
       <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white">
         <div className="flex flex-col justify-between gap-3 border-b border-slate-200 p-4 sm:flex-row sm:items-center">
           <div>
             <h2 className="font-bold text-slate-900">
-              {resource === "drivers"
-                ? "Driver management"
-                : resource === "vehicles"
-                  ? "Vehicle management"
-                  : "Service type management"}
+              {resource === "drivers" ? "Driver management" : "Vehicle management"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
               {items.length} item(s)
@@ -1173,8 +1180,7 @@ export default function AdminDashboardPage() {
             {items.map((item) => {
               const driver = item as Driver;
               const vehicle = item as Vehicle;
-              const service = item as ServiceType;
-
+        
               return (
                 <div
                   key={item.id}
@@ -1194,7 +1200,7 @@ export default function AdminDashboardPage() {
                     {resource === "vehicles" && (
                       <>
                         <p className="mt-1 text-sm text-slate-600">
-                          Capacity: {vehicle.capacity} passenger(s)
+                          Passengers: {vehicle.capacity} · Luggage: {vehicle.luggageCapacity} bag(s)
                         </p>
                         {vehicle.description && (
                           <p className="mt-1 text-sm text-slate-500">
@@ -1202,12 +1208,6 @@ export default function AdminDashboardPage() {
                           </p>
                         )}
                       </>
-                    )}
-
-                    {resource === "services" && service.description && (
-                      <p className="mt-1 text-sm text-slate-500">
-                        {service.description}
-                      </p>
                     )}
 
                     <span
@@ -1872,7 +1872,6 @@ export default function AdminDashboardPage() {
 
               {tab === "drivers" && renderResources("drivers", drivers)}
               {tab === "vehicles" && renderResources("vehicles", vehicles)}
-              {tab === "services" && renderResources("services", services)}
             </>
           )}
 

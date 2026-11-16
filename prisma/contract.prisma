@@ -10,6 +10,7 @@ model User {
   updatedAt    TimestamptzJsDate  @default(now())
 }
 
+
 model Booking {
   id                      Int                @id @default(autoincrement())
   reference               String             @unique
@@ -25,7 +26,7 @@ model Booking {
   returnTime              String?
   vehicleName             String
   passengerCount          Int
-  serviceType             String
+  luggageCount            Int                @default(0)
   specialInstructions     String?
   status                  String             @default("PENDING")
   assignedDriverId        Int?
@@ -36,7 +37,7 @@ model Booking {
   distanceMeters          Float?
   durationSeconds         Float?
 
-  // Payment values: amountCents is AUD cents (A$25.00 = 2500).
+  // Payment values: AUD cents
   paymentMethod           String             @default("PAY_DRIVER")
   paymentStatus           String             @default("PENDING")
   amountCents             Int?
@@ -49,13 +50,15 @@ model Booking {
 }
 
 model Vehicle {
-  id          Int      @id @default(autoincrement())
-  name        String
-  description String?
-  capacity    Int      @default(4)
-  active      Boolean  @default(true)
-  createdAt   DateTime @default(now())
+  id              Int      @id @default(autoincrement())
+  name            String
+  description     String?
+  capacity        Int      @default(4)
+  luggageCapacity Int      @default(0)
+  active          Boolean  @default(true)
+  createdAt       DateTime @default(now())
 }
+
 
 model Driver {
   id        Int      @id @default(autoincrement())

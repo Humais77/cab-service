@@ -1,8 +1,8 @@
+
 import { requireAdmin } from "@/src/lib/admin-auth";
 import { db } from "@/prisma/db";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
 
 const configs = {
   vehicles: {
@@ -11,22 +11,16 @@ const configs = {
       name: z.string().trim().min(2).max(100).optional(),
       description: z.string().max(500).nullable().optional(),
       capacity: z.coerce.number().int().min(1).max(13).optional(),
+      luggageCapacity: z.coerce.number().int().min(0).max(1000).optional(),
       active: z.boolean().optional(),
     }),
   },
+
   drivers: {
     model: "Driver",
     schema: z.object({
       name: z.string().trim().min(2).max(100).optional(),
       phone: z.string().trim().min(7).max(25).optional(),
-      active: z.boolean().optional(),
-    }),
-  },
-  services: {
-    model: "ServiceType",
-    schema: z.object({
-      name: z.string().trim().min(2).max(100).optional(),
-      description: z.string().max(500).nullable().optional(),
       active: z.boolean().optional(),
     }),
   },
@@ -54,7 +48,7 @@ export async function PATCH(request: Request, context: Context) {
   const resource = getResource(raw);
   const itemId = Number(id);
 
-  if (!resource || !Number.isInteger(itemId) || itemId <= 0) {
+  if (!resource || !Number.isSafeInteger(itemId) || itemId <= 0) {
     return NextResponse.json(
       { error: "Invalid resource or ID." },
       { status: 400 },
@@ -99,7 +93,7 @@ export async function DELETE(_request: Request, context: Context) {
   const resource = getResource(raw);
   const itemId = Number(id);
 
-  if (!resource || !Number.isInteger(itemId) || itemId <= 0) {
+  if (!resource || !Number.isSafeInteger(itemId) || itemId <= 0) {
     return NextResponse.json(
       { error: "Invalid resource or ID." },
       { status: 400 },

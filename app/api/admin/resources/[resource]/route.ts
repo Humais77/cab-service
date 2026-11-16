@@ -1,8 +1,8 @@
+
 import { requireAdmin } from "@/src/lib/admin-auth";
 import { db } from "@/prisma/db";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
 
 const configs = {
   vehicles: {
@@ -11,22 +11,16 @@ const configs = {
       name: z.string().trim().min(2).max(100),
       description: z.string().max(500).optional().nullable(),
       capacity: z.coerce.number().int().min(1).max(13),
+      luggageCapacity: z.coerce.number().int().min(0).max(1000),
       active: z.boolean().optional(),
     }),
   },
+
   drivers: {
     model: "Driver",
     schema: z.object({
       name: z.string().trim().min(2).max(100),
       phone: z.string().trim().min(7).max(25),
-      active: z.boolean().optional(),
-    }),
-  },
-  services: {
-    model: "ServiceType",
-    schema: z.object({
-      name: z.string().trim().min(2).max(100),
-      description: z.string().max(500).optional().nullable(),
       active: z.boolean().optional(),
     }),
   },
@@ -62,6 +56,7 @@ export async function GET(_request: Request, context: Context) {
 
   try {
     const items = await getModel(resource).all();
+
     return NextResponse.json({ items });
   } catch (error) {
     console.error("List resource error:", error);
@@ -94,14 +89,20 @@ export async function POST(request: Request, context: Context) {
 
     if (!parsed.success) {
       return NextResponse.json(
-        { error: "Invalid resource data.", details: parsed.error.flatten() },
+        {
+          error: "Invalid resource data.",
+          details: parsed.error.flatten(),
+        },
         { status: 400 },
       );
     }
 
     const item = await getModel(resource).create(parsed.data);
 
-    return NextResponse.json({ success: true, item }, { status: 201 });
+    return NextResponse.json(
+      { success: true, item },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("Create resource error:", error);
 

@@ -133,6 +133,13 @@
                   "kind": "scalar"
                 }
               },
+              "luggageCount": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "paidAt": {
                 "nullable": true,
                 "type": {
@@ -198,13 +205,6 @@
               },
               "returnTime": {
                 "nullable": true,
-                "type": {
-                  "codecId": "pg/text@1",
-                  "kind": "scalar"
-                }
-              },
-              "serviceType": {
-                "nullable": false,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -305,6 +305,9 @@
                 "journeyTime": {
                   "column": "journeyTime"
                 },
+                "luggageCount": {
+                  "column": "luggageCount"
+                },
                 "paidAt": {
                   "column": "paidAt"
                 },
@@ -334,9 +337,6 @@
                 },
                 "returnTime": {
                   "column": "returnTime"
-                },
-                "serviceType": {
-                  "column": "serviceType"
                 },
                 "specialInstructions": {
                   "column": "specialInstructions"
@@ -695,6 +695,13 @@
                   "kind": "scalar"
                 }
               },
+              "luggageCapacity": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "name": {
                 "nullable": false,
                 "type": {
@@ -720,6 +727,9 @@
                 },
                 "id": {
                   "column": "id"
+                },
+                "luggageCapacity": {
+                  "column": "luggageCapacity"
                 },
                 "name": {
                   "column": "name"
@@ -818,6 +828,15 @@
                   "dataType": "pg/text",
                   "nullable": false
                 },
+                "luggageCount": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nullable": false
+                },
                 "paidAt": {
                   "codecId": "pg/timestamptz-date@1",
                   "dataType": "pg/timestamptz",
@@ -875,11 +894,6 @@
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
                   "nullable": true
-                },
-                "serviceType": {
-                  "codecId": "pg/text@1",
-                  "dataType": "pg/text",
-                  "nullable": false
                 },
                 "specialInstructions": {
                   "codecId": "pg/text@1",
@@ -1233,6 +1247,15 @@
                   },
                   "nullable": false
                 },
+                "luggageCapacity": {
+                  "codecId": "pg/int4@1",
+                  "dataType": "pg/int4",
+                  "default": {
+                    "kind": "literal",
+                    "value": 0
+                  },
+                  "nullable": false
+                },
                 "name": {
                   "codecId": "pg/text@1",
                   "dataType": "pg/text",
@@ -1254,7 +1277,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "a550688396d1d0c13a04482e3c990c188708b4951e19bc6423048d177187f3e7"
+    "storageHash": "c1046f62a4718a717b58096ef6d0a54885455312da673a0abb30e4dc32aea33d"
   },
   "capabilities": {
     "postgres": {

@@ -2,13 +2,9 @@
 import { NextResponse } from "next/server";
 import { db } from "@/prisma/db";
 
-
 export async function GET() {
   try {
-    const [allVehicles, allServices] = await Promise.all([
-      db.orm.public.Vehicle.all(),
-      db.orm.public.ServiceType.all(),
-    ]);
+    const allVehicles = await db.orm.public.Vehicle.all();
 
     const vehicles = allVehicles
       .filter((vehicle) => vehicle.active)
@@ -16,16 +12,10 @@ export async function GET() {
         id: vehicle.id,
         name: vehicle.name,
         capacity: vehicle.capacity,
+        luggageCapacity: vehicle.luggageCapacity,
       }));
 
-    const services = allServices
-      .filter((service) => service.active)
-      .map((service) => ({
-        id: service.id,
-        name: service.name,
-      }));
-
-    return NextResponse.json({ vehicles, services });
+    return NextResponse.json({ vehicles });
   } catch (error) {
     console.error("Load booking options error:", error);
 

@@ -23,7 +23,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'a550688396d1d0c13a04482e3c990c188708b4951e19bc6423048d177187f3e7'>;
+  StorageHashBase<'c1046f62a4718a717b58096ef6d0a54885455312da673a0abb30e4dc32aea33d'>;
 export type ExecutionHash = ExecutionHashBase<string>;
 export type ProfileHash =
   ProfileHashBase<'3916f444a8a17ad749191acf9e08dad97d1a327b88c2f1d45d12f240296aa8b2'>;
@@ -284,6 +284,7 @@ export namespace Models {
     id: FieldOutputTypes['public']['Booking']['id'];
     journeyDate: FieldOutputTypes['public']['Booking']['journeyDate'];
     journeyTime: FieldOutputTypes['public']['Booking']['journeyTime'];
+    luggageCount: FieldOutputTypes['public']['Booking']['luggageCount'];
     paidAt: FieldOutputTypes['public']['Booking']['paidAt'];
     passengerCount: FieldOutputTypes['public']['Booking']['passengerCount'];
     paymentMethod: FieldOutputTypes['public']['Booking']['paymentMethod'];
@@ -294,7 +295,6 @@ export namespace Models {
     reference: FieldOutputTypes['public']['Booking']['reference'];
     returnDate: FieldOutputTypes['public']['Booking']['returnDate'];
     returnTime: FieldOutputTypes['public']['Booking']['returnTime'];
-    serviceType: FieldOutputTypes['public']['Booking']['serviceType'];
     specialInstructions: FieldOutputTypes['public']['Booking']['specialInstructions'];
     status: FieldOutputTypes['public']['Booking']['status'];
     stripeCheckoutSessionId: FieldOutputTypes['public']['Booking']['stripeCheckoutSessionId'];
@@ -347,6 +347,7 @@ export namespace Models {
     createdAt: FieldOutputTypes['public']['Vehicle']['createdAt'];
     description: FieldOutputTypes['public']['Vehicle']['description'];
     id: FieldOutputTypes['public']['Vehicle']['id'];
+    luggageCapacity: FieldOutputTypes['public']['Vehicle']['luggageCapacity'];
     name: FieldOutputTypes['public']['Vehicle']['name'];
     readonly [RelationKeys]?: never;
   };
@@ -472,6 +473,16 @@ type ContractBase = Omit<
                   readonly nullable: false;
                   readonly many: false;
                 };
+                readonly luggageCount: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                  readonly many: false;
+                };
                 readonly paidAt: {
                   readonly dataType: 'pg/timestamptz';
                   readonly codecId: 'pg/timestamptz-date@1';
@@ -538,12 +549,6 @@ type ContractBase = Omit<
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
                   readonly nullable: true;
-                  readonly many: false;
-                };
-                readonly serviceType: {
-                  readonly dataType: 'pg/text';
-                  readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
                   readonly many: false;
                 };
                 readonly specialInstructions: {
@@ -871,6 +876,16 @@ type ContractBase = Omit<
                   };
                   readonly many: false;
                 };
+                readonly luggageCapacity: {
+                  readonly dataType: 'pg/int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: false;
+                  readonly default: {
+                    readonly kind: 'literal';
+                    readonly value: DefaultLiteralValue<'pg/int4@1', 0>;
+                  };
+                  readonly many: false;
+                };
                 readonly name: {
                   readonly dataType: 'pg/text';
                   readonly codecId: 'pg/text@1';
@@ -975,6 +990,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
+              readonly luggageCount: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly paidAt: {
                 readonly nullable: true;
                 readonly type: {
@@ -1019,10 +1038,6 @@ type ContractBase = Omit<
               };
               readonly returnTime: {
                 readonly nullable: true;
-                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
-              };
-              readonly serviceType: {
-                readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly specialInstructions: {
@@ -1076,6 +1091,7 @@ type ContractBase = Omit<
                 readonly id: { readonly column: 'id' };
                 readonly journeyDate: { readonly column: 'journeyDate' };
                 readonly journeyTime: { readonly column: 'journeyTime' };
+                readonly luggageCount: { readonly column: 'luggageCount' };
                 readonly paidAt: { readonly column: 'paidAt' };
                 readonly passengerCount: { readonly column: 'passengerCount' };
                 readonly paymentMethod: { readonly column: 'paymentMethod' };
@@ -1086,7 +1102,6 @@ type ContractBase = Omit<
                 readonly reference: { readonly column: 'reference' };
                 readonly returnDate: { readonly column: 'returnDate' };
                 readonly returnTime: { readonly column: 'returnTime' };
-                readonly serviceType: { readonly column: 'serviceType' };
                 readonly specialInstructions: { readonly column: 'specialInstructions' };
                 readonly status: { readonly column: 'status' };
                 readonly stripeCheckoutSessionId: { readonly column: 'stripeCheckoutSessionId' };
@@ -1309,6 +1324,10 @@ type ContractBase = Omit<
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
+              readonly luggageCapacity: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
               readonly name: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
@@ -1324,6 +1343,7 @@ type ContractBase = Omit<
                 readonly createdAt: { readonly column: 'createdAt' };
                 readonly description: { readonly column: 'description' };
                 readonly id: { readonly column: 'id' };
+                readonly luggageCapacity: { readonly column: 'luggageCapacity' };
                 readonly name: { readonly column: 'name' };
               };
             };

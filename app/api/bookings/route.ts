@@ -34,7 +34,7 @@ const bookingSchema = z.object({
 
   vehicleName: z.string().trim().min(1).max(100),
   passengerCount: z.coerce.number().int().min(0).max(13),
-  serviceType: z.string().trim().min(1).max(100),
+  luggageCount: z.coerce.number().int().min(0).max(1000).default(0),
   specialInstructions: z.string().trim().max(2000).optional(),
   paymentMethod: z.enum(["STRIPE", "PAY_DRIVER"]).default("PAY_DRIVER"),
 });
@@ -119,29 +119,21 @@ export async function POST(request: Request) {
   }
 
   let selectedVehicle;
-  let selectedService;
 
-  try {
-    const [vehicles, services] = await Promise.all([
-      db.orm.public.Vehicle.all(),
-      db.orm.public.ServiceType.all(),
-    ]);
+try {
+  const vehicles = await db.orm.public.Vehicle.all();
 
-    selectedVehicle = vehicles.find(
-      (item) => item.active && item.name === data.vehicleName,
-    );
+  selectedVehicle = vehicles.find(
+    (item) => item.active && item.name === data.vehicleName,
+  );
+} catch (error) {
+  console.error("Booking vehicle validation failed:", error);
 
-    selectedService = services.find(
-      (item) => item.active && item.name === data.serviceType,
-    );
-  } catch (error) {
-    console.error("Booking option validation failed:", error);
-
-    return NextResponse.json(
-      { error: "Unable to validate your selected vehicle and service." },
-      { status: 500 },
-    );
-  }
+  return NextResponse.json(
+    { error: "Unable to validate your selected vehicle." },
+    { status: 500 },
+  );
+}
 
   if (!selectedVehicle) {
     return NextResponse.json(
@@ -176,12 +168,14 @@ if (!isParcelDelivery && data.passengerCount > selectedVehicle.capacity) {
   );
 }
 
-  if (!selectedService) {
-    return NextResponse.json(
-      { error: "This service is unavailable. Please select another service." },
-      { status: 400 },
-    );
-  }
+if (data.luggageCount > selectedVehicle.luggageCapacity) {
+  return NextResponse.json(
+    {
+      error: `This vehicle allows a maximum of ${selectedVehicle.luggageCapacity} luggage bags.`,
+    },
+    { status: 400 },
+  );
+}
 
 
   let route: Awaited<ReturnType<typeof getDrivingRoute>>;
@@ -260,10 +254,10 @@ if (!isParcelDelivery && data.passengerCount > selectedVehicle.capacity) {
       returnTime:
         data.tripType === "Return" ? data.returnTime || null : null,
 
-      vehicleName: data.vehicleName,
-      passengerCount: data.passengerCount,
-      serviceType: data.serviceType,
-      specialInstructions: data.specialInstructions || null,
+     vehicleName: data.vehicleName,
+passengerCount: data.passengerCount,
+luggageCount: data.luggageCount,
+specialInstructions: data.specialInstructions || null,
 
       status: data.paymentMethod === "STRIPE"
         ? "PAYMENT_PENDING"
